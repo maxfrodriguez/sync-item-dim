@@ -232,3 +232,12 @@ class SAStops(Base, SAModelBaseWareHouse):
     event_id = Column(BigInteger, ForeignKey("events.id"), nullable=True)
 
     # event = relationship("SAEvent", uselist=False, back_populates="stops")
+
+
+class SADrivers(Base, SAModelBaseWareHouse):
+    __tablename__ = "drivers"
+
+    di_id = Column(Integer)
+    name = Column(String, nullable=True)
+    status = Column(String, nullable=True)
+    fleet = Column(String, nullable=True)

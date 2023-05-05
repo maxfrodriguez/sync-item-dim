@@ -1,10 +1,11 @@
 import logging
 from datetime import datetime
-from typing import Generator, List
+from typing import Any, Dict, Generator, List
 
 from src.domain.entities.shipment import Event, Shipment
 from src.domain.repository.shipment_abc import ShipmentRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
+from src.infrastructure.cross_cutting.hasher import deep_hash
 from src.infrastructure.data_access.alchemy.sa_session_impl import get_sa_session
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import (
@@ -12,6 +13,7 @@ from src.infrastructure.data_access.db_profit_tools_access.queries.queries impor
     COMPLETE_SHIPMENT_QUERY,
     MODLOG_QUERY,
     NEXT_ID_WH,
+    WAREHOUSE_SHIPMENTS,
 )
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SALoaderLog, SAShipment
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
@@ -19,15 +21,6 @@ from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
 
 
 class ShipmentImpl(ShipmentRepositoryABC):
-    # async def get_entire_shipment(self, shipment_id: int):
-    #    raw_shipment: Dict[str, Any] = {}
-    #    async with PTSQLAnywhere(stage=ENVIRONMENT.UAT) as sybase_client:
-    #        result: Generator[Record, None, None] = sybase_client.SELECT(COMPLETE_SHIPMENT_QUERY.format(shipment_id), result_type=dict)
-    #        if result:
-    #            raw_shipment = result[0]
-    #        else:
-    #            logging.error(f"I could not find data for this shipment id: {shipment_id}")
-    #        return raw_shipment
 
     async def get_shipment_by_id(self, shipment: Shipment) -> Shipment:
         async with PTSQLAnywhere(stage=ENVIRONMENT.UAT) as sybase_client:
@@ -77,13 +70,16 @@ class ShipmentImpl(ShipmentRepositoryABC):
         assert rows, f"don't not found shipments to sync at {datetime.now()}"
 
         # declare a set list to store the RateConfShipment objects
-        unique_shipment = set()
+        unique_shipment_ids = set()
         # create a list of rateconf_shipment objects
         bulk_shipments: List[SAShipment] = []
 
         async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("shipments"))
             # Get List Shipment ID, DS_ID, HASH
+            wh_shipments: List[Dict[str, Any]] = wh_client.execute_select(WAREHOUSE_SHIPMENTS.format(ids))
+
+        shipments_hash_list = {wh_shipment['ds_id']: wh_shipment['hash'] for wh_shipment in wh_shipments}
 
         assert row_next_id, f"Don't not found next Id for ''Shipments WH'' at {datetime.now()}"
 
@@ -92,34 +88,40 @@ class ShipmentImpl(ShipmentRepositoryABC):
         # read shipments_query one by one
         for row_query in rows:
             # create a KeyRateConfShipment object to store the data from the shipment
-            unique_key = row_query["ds_id"]
+            shipment_hash = deep_hash(row_query)
+            shipment_id = row_query["ds_id"]
             # Compare HASH
 
             # validate if the unique_rateconf_key is not in the set list to avoid duplicates of the same RateConfShipment
-            if unique_key not in unique_shipment:
+            if shipment_id not in unique_shipment_ids:
                 # add the shipment_obj to the set list
-                unique_shipment.add(unique_key)
+                unique_shipment_ids.add(shipment_id)
 
-                filtered_shipments = [shipment for shipment in list_of_shipments if shipment.ds_id == unique_key]
+                filtered_shipments = [shipment for shipment in list_of_shipments if shipment.ds_id == shipment_id]
 
                 if filtered_shipments:
                     # get the shipment to update with the id to be inserted
-                    found_shipment = filtered_shipments[0]
+                    filtered_shipment = filtered_shipments[0]
+                    # Comparamos Hashes
+                    if shipment_hash and shipment_hash == int(shipments_hash_list[shipment_id]):
+                        continue
+
+                    # Create a new shipment object with the next id
                     new_shipment: SAShipment = SAShipment(**row_query)
                     new_shipment.id = next_id
-                    found_shipment.id = new_shipment.id
+                    new_shipment.hash = shipment_hash
 
                     # add to the list will use in the bulk copy
                     bulk_shipments.append(new_shipment)
 
                     # fill the shipment entity with the data we need to calculate the KPI
-                    found_shipment.tmp_type = new_shipment.TmpType
-                    found_shipment.id = next_id
+                    filtered_shipment.tmp_type = new_shipment.TmpType
+                    filtered_shipment.id = next_id
 
                     # add one to continue with the next Shipment.
                     next_id += 1
                 else:
-                    logging.warning(f"Don't find the shipment: {unique_key}")
+                    logging.warning(f"Did't find the shipment: {shipment_id}")
 
         # bulk copy de bulk_shipments
         async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:

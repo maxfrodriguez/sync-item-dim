@@ -67,7 +67,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
             )
 
         # if rows is empty, raise the exeption to close the process because we need to loggin just in application layer
-        assert rows, f"don't not found shipments to sync at {datetime.now()}"
+        assert rows, f"did't not found shipments to sync at {datetime.now()}"
 
         # declare a set list to store the RateConfShipment objects
         unique_shipment_ids = set()
@@ -80,8 +80,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
             wh_shipments: List[Dict[str, Any]] = wh_client.execute_select(WAREHOUSE_SHIPMENTS.format(ids))
 
         shipments_hash_list = {wh_shipment['ds_id']: wh_shipment['hash'] for wh_shipment in wh_shipments}
+        shipment_id_list = {wh_shipment['ds_id']: wh_shipment['id'] for wh_shipment in wh_shipments}
 
-        assert row_next_id, f"Don't not found next Id for ''Shipments WH'' at {datetime.now()}"
+        assert row_next_id, f"Did't not found next Id for ''Shipments WH'' at {datetime.now()}"
 
         next_id = row_next_id[0]["NextId"]
 
@@ -103,7 +104,8 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     # get the shipment to update with the id to be inserted
                     filtered_shipment = filtered_shipments[0]
                     # Comparamos Hashes
-                    if shipment_hash and shipment_hash == int(shipments_hash_list[shipment_id]):
+                    if (shipment_hash and shipment_id in shipments_hash_list) and shipment_hash == int(shipments_hash_list[shipment_id]):
+                        filtered_shipment.id = int(shipment_id_list[shipment_id])
                         continue
 
                     # Create a new shipment object with the next id

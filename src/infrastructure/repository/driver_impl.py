@@ -14,7 +14,11 @@ from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client im
 
 
 class DriverImpl(DriverRepositoryABC):
-    async def save_and_sync_drivers(self, list_of_shipments: List[Shipment]):
+    async def get_driver_wh(self):
+        
+        pass
+
+    async def save_drivers(self, list_of_shipments: List[Shipment]):
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
         async with Tower121DdConnector(stage=ENVIRONMENT.UAT) as tower_121_client:

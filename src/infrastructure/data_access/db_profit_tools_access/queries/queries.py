@@ -1,47 +1,37 @@
 from typing import Final
 
-# EVENT_QUERY: Final[
-#    str
+# MODLOG_QUERY: Final[
+#     str
 # ] = """
-# SELECT
-#    disp_events.de_id AS id,
-#    disp_events.de_ship_seq AS sequence,
-#    CASE
-#        WHEN de_event_type = 'H' THEN 'HOOK'
-#        WHEN de_event_type = 'D' THEN 'DELIVER'
-#        WHEN de_event_type = 'P' THEN 'PICKUP'
-#        WHEN de_event_type = 'R' THEN 'DROP'
-#        WHEN de_event_type = 'N' THEN 'DISMOUNT'
-#        WHEN de_event_type = 'M' THEN 'MOUNT'
-#        ELSE 'NOT FOUND'
-#    END AS type,
-#    disp_events.de_driver AS driver_id,
-#    carrierid AS carrier_id
-# FROM [DBA].[disp_events]
-# LEFT JOIN [DBA].[event_carrier_assignments]
-#    ON [event_carrier_assignments].de_id = [disp_events].de_id
-# WHERE de_shipment_id = {}
-# ORDER BY disp_events.de_ship_seq ASC, disp_events.de_id DESC;
+# SELECT DISTINCT
+#   ds.ds_id,
+#   ds.ds_status,
+#   MAX(md_ds.mod_id) AS r_mod_id
+# FROM [DBA].[disp_ship] ds
+# LEFT JOIN [DBA].[modlog_ship] md_ds
+#   ON ds.ds_id = md_ds.ds_id
+# WHERE ds.ds_status = 'K'
+# OR (ds.ds_status IN ('N', 'Q', 'T', 'W')
+# AND md_ds.mod_id IS NOT NULL
+# )
+# GROUP BY ds.ds_id,
+#          ds.ds_status
+# HAVING ds.ds_status = 'K'
+# OR MAX(md_ds.mod_id) > {}
+# ORDER BY ds.ds_status DESC
 # """
 
-MODLOG_QUERY: Final[
-    str
-] = """
+MODLOG_QUERY: Final[str] = """
 SELECT DISTINCT
   ds.ds_id,
   ds.ds_status,
   MAX(md_ds.mod_id) AS r_mod_id
-FROM [DBA].[disp_ship] ds
-LEFT JOIN [DBA].[modlog_ship] md_ds
+FROM [DBA].[modlog_ship] md_ds
+LEFT JOIN [DBA].[disp_ship] ds
   ON ds.ds_id = md_ds.ds_id
-WHERE ds.ds_status = 'K'
-OR (ds.ds_status IN ('N', 'Q', 'T', 'W')
-AND md_ds.mod_id IS NOT NULL
-)
 GROUP BY ds.ds_id,
          ds.ds_status
-HAVING ds.ds_status = 'K'
-OR MAX(md_ds.mod_id) > {}
+HAVING MAX(md_ds.mod_id) > {}
 ORDER BY ds.ds_status DESC
 """
 
@@ -354,4 +344,66 @@ WHERE shipments.ds_id IN ({})
 GROUP BY shipments.ds_id,
          shipments.hash,
          shipments.created_at
+"""
+
+WAREHOUSE_EVENTS: Final[str] = """
+WITH last_created_tmp
+AS (SELECT DISTINCT
+    de_id,
+    MAX(created_at) AS max_created_at
+FROM events
+GROUP BY de_id)
+SELECT
+    MAX
+    (events.id) AS id,
+    events.de_id,
+    events.hash,
+    events.created_at
+FROM events
+INNER JOIN last_created_tmp dt
+    ON dt.de_id = events.de_id
+    AND dt.max_created_at = events.created_at
+WHERE events.de_id IN ({})
+GROUP BY events.de_id,
+         events.hash,
+         events.created_at
+"""
+
+WAREHOUSE_STOPS: Final[str] = """
+WITH last_created_tmp
+AS (SELECT DISTINCT
+    pt_event_id,
+    MAX(created_at) AS max_created_at
+FROM stops
+GROUP BY pt_event_id)
+SELECT
+    MAX
+    (stops.id) AS id,
+    stops.pt_event_id,
+    stops.hash,
+    stops.created_at
+FROM stops
+INNER JOIN last_created_tmp dt
+    ON dt.pt_event_id = stops.pt_event_id
+    AND dt.max_created_at = stops.created_at
+WHERE stops.pt_event_id IN ({})
+GROUP BY stops.pt_event_id,
+         stops.hash,
+         stops.created_at
+"""
+
+DRIVERS_QUERY: Final[str] = """
+SELECT DISTINCT
+    di_id,
+    (em_fn + ' ' + em_ln) AS name,
+    (CASE
+        WHEN em_status = 'K' THEN 'ACTIVE'
+        WHEN em_status = 'D' THEN 'DEACTIVATED'
+        ELSE 'NOT FOUND'
+    END) AS status,
+    di_Fleet as fleet
+FROM [DBA].driverinfo
+INNER JOIN [DBA].employees
+    ON em_id = di_id
+WHERE di_id IN ({})
 """

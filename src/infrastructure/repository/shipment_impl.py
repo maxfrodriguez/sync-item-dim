@@ -33,7 +33,8 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
     async def retrieve_shipment_list(
         self, last_modlog: int = None, query_to_execute: str = MODLOG_QUERY
-    ) -> List[Shipment]:
+    ) -> List[Shipment] | None:
+        shipments: List[Shipment] = []
         latest_sa_mod_log: SALoaderLog | None = None
         if last_modlog is None:
             async with get_sa_session() as session:
@@ -48,15 +49,14 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
             if result:
                 try:
-                    shipments: List[Shipment] = [
+                    shipments = [
                         Shipment(ds_id=shipment["ds_id"], modlog=shipment["r_mod_id"])
                         for shipment in result
-                        # if shipment_log.ds_id
                     ]
                 except Exception as e:
-                    logging.error(f"Error -> retrieve_shipment_list: {e}")
+                    logging.error(f"Error in retrieve_shipment_list: {e}")
 
-            return shipments
+            return shipments if len(shipments) > 0 else None
 
     async def save_and_sync_shipment(self, list_of_shipments: List[Shipment]):
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)

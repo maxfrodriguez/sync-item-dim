@@ -11,14 +11,15 @@ class TestSyncUp:
     async def test_sync_dimension_tables(self):
         total_movements: int = 0
         shipments: List[Shipment] = await retrieve_shipments_list()
-        modlog_ids = [shipment.modlog for shipment in shipments]
-        # shipments: List[Shipment] = [
-        #     Shipment(ds_id=136772, modlog=0),
-        # ]
-        
-        await sync_dimension_tables(shipments=shipments)
-        await finish_synchronization(
-            lowest_modlog=min(modlog_ids),
-            highest_modlog=max(modlog_ids),
-            fact_movements_loaded=total_movements,
-        )
+        if shipments:
+            modlog_ids = [shipment.modlog for shipment in shipments]
+            # shipments: List[Shipment] = [
+            #     Shipment(ds_id=136772, modlog=0),
+            # ]
+            
+            await sync_dimension_tables(shipments=shipments)
+            await finish_synchronization(
+                lowest_modlog=min(modlog_ids),
+                highest_modlog=max(modlog_ids),
+                fact_movements_loaded=total_movements,
+            )

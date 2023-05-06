@@ -86,7 +86,7 @@ class StopsImpl(StopsRepositoryABC):
 
                 if current_event:
                     # Validate stop hash
-                    if (stop_hash and unique_key_event in stops_hash_list) and stop_hash == int(stops_hash_list[unique_key_event]):
+                    if (stop_hash and unique_key_event in stops_hash_list and stops_hash_list[unique_key_event]) and str(stop_hash) == stops_hash_list[unique_key_event]:
                         continue
 
                     # row_query.pop("ds_id", None)

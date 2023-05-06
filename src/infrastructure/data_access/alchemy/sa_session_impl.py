@@ -152,7 +152,7 @@ def decode_params(params: str) -> str:
 @alru_cache(maxsize=16)
 async def get_connection_str(stage: ENVIRONMENT) -> str:
     # To local use:
-    return "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
+    # return "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
 
     user: str | None = None
     password: str | None = None

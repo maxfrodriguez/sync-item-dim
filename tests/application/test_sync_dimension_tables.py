@@ -12,9 +12,9 @@ class TestSyncUp:
         total_movements: int = 0
         shipments: List[Shipment] = await retrieve_shipments_list()
         modlog_ids = [shipment.modlog for shipment in shipments]
-        shipments: List[Shipment] = [
-            Shipment(ds_id=136772, modlog=0),
-        ]
+        # shipments: List[Shipment] = [
+        #     Shipment(ds_id=136772, modlog=0),
+        # ]
         
         await sync_dimension_tables(shipments=shipments)
         await finish_synchronization(

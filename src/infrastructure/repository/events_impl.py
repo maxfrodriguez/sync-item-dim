@@ -64,7 +64,7 @@ class EventImpl(EventRepositoryABC):
 
                 if current_shipment:
                     # Validate event hash
-                    if (event_hash and event_id in events_hash_list) and event_hash == int(events_hash_list[event_id]):
+                    if (event_hash and event_id in events_hash_list and events_hash_list[event_id]) and str(event_hash) == events_hash_list[event_id]:
                         row_query.pop("ds_id", None)
                         current_event = Event(**row_query)
                         current_event.id = int(event_id_list[event_id])

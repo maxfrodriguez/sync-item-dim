@@ -70,8 +70,8 @@ class AlchemyBase(metaclass=Singleton):
             params = self.__decode_params(self._secrets["params"])
             connection_str = f"{connection_str}?{params}"
 
-        # if alchemyDriverName == "mssql+pyodbc":
-        #     connection_str = "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
+        if alchemyDriverName == "mssql+pyodbc":
+            connection_str = "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
 
         return create_engine(url=connection_str, echo=True)
 
@@ -113,6 +113,12 @@ class AlchemyBase(metaclass=Singleton):
     def bulk_copy(self, objects: List[Any]) -> None:
         try:
             self._session.add_all(objects)
+        except Exception:
+            logging.error(f"Error executing the bulk copy at: {datetime.now()}")
+    
+    def save_object(self, object: Any) -> None:
+        try:
+            self._session.add(object)
         except Exception:
             logging.error(f"Error executing the bulk copy at: {datetime.now()}")
 

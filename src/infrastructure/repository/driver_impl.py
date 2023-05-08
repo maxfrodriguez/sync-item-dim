@@ -2,21 +2,57 @@
 
 from datetime import datetime
 import logging
-from typing import List
+from typing import Generator, List
 from src.domain.entities.driver import Driver
 from src.domain.entities.shipment import Shipment
 from src.domain.repository.driver_abc import DriverRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.data_access.db_121tower_access.tower121_anywhere_client import Tower121DdConnector
-from src.infrastructure.data_access.db_profit_tools_access.queries.queries import NEXT_ID_WH, STOPS_QUERY
+from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere
+from src.infrastructure.data_access.db_profit_tools_access.queries.queries import NEXT_ID_WH, PT_DRIVERS_QUERY, STOPS_QUERY, WH_DRIVERS_QUERY
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SADrivers
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
+from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
 
 
 class DriverImpl(DriverRepositoryABC):
-    async def get_driver_wh(self):
-        
-        pass
+    async def get_driver_pt(self, pt_driver_id: int) -> Driver:
+        try:
+            async with PTSQLAnywhere(stage=ENVIRONMENT.UAT) as sybase_client:
+                result: Generator[Record, None, None] = sybase_client.SELECT(
+                    PT_DRIVERS_QUERY.format(pt_driver_id)
+                )
+
+                if result:
+                    new_driver =  Driver(**result)
+
+                return new_driver
+            
+        except Exception as e:
+            logging.error(f"Error in get_driver_pt: {e} at {datetime.now()}")
+
+
+    async def save_driver(self, pt_driver_id: int) -> None:
+        try:
+            async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+                result = wh_client.execute_select(WH_DRIVERS_QUERY.format(pt_driver_id))
+
+                if not result:
+                    driver: Driver = await self.get_driver_pt(pt_driver_id=pt_driver_id)
+                    if driver:
+                        new_sadriver = SADrivers(
+                            di_id = driver.di_id,
+                            name = driver.name,
+                            status = driver.status,
+                            fleet = driver.fleet,
+                        )
+
+                
+            wh_client.save_object(new_sadriver)
+
+        except Exception as e:
+            logging.error(f"Error in save_driver: {e} at {datetime.now()}")
+
 
     async def save_drivers(self, list_of_shipments: List[Shipment]):
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)

@@ -392,7 +392,7 @@ GROUP BY stops.pt_event_id,
          stops.created_at
 """
 
-DRIVERS_QUERY: Final[str] = """
+PT_DRIVERS_QUERY: Final[str] = """
 SELECT DISTINCT
     di_id,
     (em_fn + ' ' + em_ln) AS name,
@@ -406,4 +406,15 @@ FROM [DBA].driverinfo
 INNER JOIN [DBA].employees
     ON em_id = di_id
 WHERE di_id IN ({})
+"""
+
+WH_DRIVERS_QUERY: Final[str] = """
+SELECT [di_id]
+      ,[name]
+      ,[status]
+      ,[fleet]
+      ,[id]
+      ,[created_at]
+FROM  [dbo].[drivers]
+WHERE [di_id] = {}
 """

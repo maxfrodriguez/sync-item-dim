@@ -73,7 +73,7 @@ class AlchemyBase(metaclass=Singleton):
         if alchemyDriverName == "mssql+pyodbc":
             connection_str = "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
 
-        return create_engine(url=connection_str, echo=True)
+        return create_engine(url=connection_str, echo=True, isolation_level="READ_COMMITTED")
 
     def __decode_params(self, params: str) -> str:
         params_decoded = loads(params)
@@ -147,6 +147,7 @@ class AlchemyBase(metaclass=Singleton):
             logging.error(f"Error executing commit: {e}")
             self._session.rollback()
         else:
+            self._session.expire_all()
             self._session.close()
 
 

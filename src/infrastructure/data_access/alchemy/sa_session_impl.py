@@ -73,7 +73,7 @@ class AlchemyBase(metaclass=Singleton):
         if alchemyDriverName == "mssql+pyodbc":
             connection_str = "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
 
-        return create_engine(url=connection_str, echo=True, isolation_level="READ_COMMITTED")
+        return create_engine(url=connection_str, echo=True)
 
     def __decode_params(self, params: str) -> str:
         params_decoded = loads(params)
@@ -83,7 +83,7 @@ class AlchemyBase(metaclass=Singleton):
         if self._sessionmaker is None:
             await self._get_credentials()
             engine = await self._setup_engine(alchemyDriverName=alchemyDriverName)
-            self._sessionmaker = sessionmaker(bind=engine, expire_on_commit=False)
+            self._sessionmaker = sessionmaker(bind=engine)
 
     def execute_select(self, query: Union[str, Select]) -> List[Dict[str, Any]]:
         try:

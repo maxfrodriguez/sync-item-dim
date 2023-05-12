@@ -70,8 +70,8 @@ class AlchemyBase(metaclass=Singleton):
             params = self.__decode_params(self._secrets["params"])
             connection_str = f"{connection_str}?{params}"
 
-        if alchemyDriverName == "mssql+pyodbc":
-            connection_str = "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
+        # if alchemyDriverName == "mssql+pyodbc":
+        #     connection_str = "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
 
         return create_engine(url=connection_str, echo=True)
 
@@ -86,15 +86,24 @@ class AlchemyBase(metaclass=Singleton):
             self._sessionmaker = sessionmaker(bind=engine)
 
     def execute_select(self, query: Union[str, Select]) -> List[Dict[str, Any]]:
+        # try:
+            # # with self._sessionmaker() as session:
+            # if isinstance(query, str):
+            #     result_proxy = self._session.execute(text(query))
+            # if isinstance(query, Select):
+            #     result_proxy = self._session.execute(query)
+            # result = result_proxy.fetchall()
+            # columns = result_proxy.keys()
+            # return [dict(zip(columns, row)) for row in result]
         try:
-            # with self._sessionmaker() as session:
-            if isinstance(query, str):
-                result_proxy = self._session.execute(text(query))
-            if isinstance(query, Select):
-                result_proxy = self._session.execute(query)
-            result = result_proxy.fetchall()
-            columns = result_proxy.keys()
-            return [dict(zip(columns, row)) for row in result]
+            with self._sessionmaker() as session:
+                if isinstance(query, str):
+                    result_proxy = session.execute(text(query))
+                if isinstance(query, Select):
+                    result_proxy = session.execute(query)
+                result = result_proxy.fetchall()
+                columns = result_proxy.keys()
+                return [dict(zip(columns, row)) for row in result]
         except Exception:
             logging.error(f"Error executing query: {query}")
 
@@ -112,7 +121,9 @@ class AlchemyBase(metaclass=Singleton):
 
     def bulk_copy(self, objects: List[Any]) -> None:
         try:
-            self._session.add_all(objects)
+            # self._session.add_all(objects)
+            with self._session.begin():
+                self._session.add_all(objects)
         except Exception:
             logging.error(f"Error executing the bulk copy at: {datetime.now()}")
     

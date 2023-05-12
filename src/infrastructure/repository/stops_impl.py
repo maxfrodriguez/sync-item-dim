@@ -9,6 +9,7 @@ from src.domain.entities.stop import Stop
 from src.domain.repository.stops_abc import StopsRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
+from src.infrastructure.data_access.alchemy.sa_session_impl import get_sa_session
 from src.infrastructure.data_access.db_121tower_access.tower121_anywhere_client import Tower121DdConnector
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import NEXT_ID_WH, STOPS_QUERY, WAREHOUSE_STOPS
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAStops
@@ -94,6 +95,7 @@ class StopsImpl(StopsRepositoryABC):
                     new_stop.event_id = current_event.id
                     new_stop.id = next_id
                     new_stop.hash = stop_hash
+                    new_stop.created_at = datetime.utcnow().replace(second=0, microsecond=0)
                     current_stop = Stop(**row_query)
                     current_stop.id = next_id
                     current_event.stop = current_stop
@@ -103,6 +105,6 @@ class StopsImpl(StopsRepositoryABC):
                 else:
                     logging.warning(f"Did't find the shipment: {unique_key_event}")
 
-        # bulk copy de bulk_shipments
+        # Bulk insert Stops.
         async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
             wh_client.bulk_copy(bulk_stops)

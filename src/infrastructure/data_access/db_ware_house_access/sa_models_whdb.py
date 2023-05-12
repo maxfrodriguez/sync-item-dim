@@ -75,6 +75,7 @@ class SALoaderLog(Base, SAModelBaseWareHouse):
     mod_lowest_version = Column(BigInteger, nullable=False, index=True)
     mod_highest_version = Column(BigInteger, nullable=False, index=True)
     num_fact_movements_loaded = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
 
     @classmethod
     def get_highest_version(cls, db_session: Session) -> Self | None:
@@ -133,6 +134,7 @@ class SAShipment(Base, SAModelBaseWareHouse):
     eq_h_info_line = Column(String, nullable=True)
     eq_h_info_type = Column(String, nullable=True)
     hash = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
 
     @classmethod
     def find_by_hash(cls, db_session: Session, hash: str) -> int:
@@ -167,6 +169,7 @@ class SAEvent(Base, SAModelBaseWareHouse):
     de_latest = Column(DateTime, nullable=True)
     driver_name = Column(String, nullable=True)
     hash = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
 
     shipment_id = Column(BigInteger, ForeignKey("shipments.id", ondelete="CASCADE"), nullable=True)
     shipment = relationship("SAShipment", uselist=False, back_populates="events")
@@ -230,6 +233,7 @@ class SAStops(Base, SAModelBaseWareHouse):
     departure_dt = Column(DateTime, nullable=True)
     hash = Column(String, nullable=True)
     event_id = Column(BigInteger, ForeignKey("events.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
 
     # event = relationship("SAEvent", uselist=False, back_populates="stops")
 

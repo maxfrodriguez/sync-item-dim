@@ -7,6 +7,7 @@ from src.domain.entities.shipment import Shipment
 from src.domain.repository.events_abc import EventRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
+from src.infrastructure.data_access.alchemy.sa_session_impl import get_sa_session
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import COMPLETE_EVENT_QUERY, NEXT_ID_WH, WAREHOUSE_EVENTS
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAEvent
@@ -76,6 +77,7 @@ class EventImpl(EventRepositoryABC):
                     new_event.shipment_id = current_shipment.id
                     new_event.id = next_id
                     new_event.hash = event_hash
+                    new_event.created_at = datetime.utcnow().replace(second=0, microsecond=0)
                     current_event = Event(**row_query)
                     current_event.id = next_id
                     current_shipment.events.append(current_event)
@@ -86,5 +88,6 @@ class EventImpl(EventRepositoryABC):
                     logging.warning(f"Did't find the shipment: {event_id}")
 
         # bulk copy de bulk_shipments
+            
         async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
             wh_client.bulk_copy(bulk_events)

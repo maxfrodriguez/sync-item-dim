@@ -9,7 +9,6 @@ from src.domain.entities.stop import Stop
 from src.domain.repository.stops_abc import StopsRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
-from src.infrastructure.data_access.alchemy.sa_session_impl import get_sa_session
 from src.infrastructure.data_access.db_121tower_access.tower121_anywhere_client import Tower121DdConnector
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import NEXT_ID_WH, STOPS_QUERY, WAREHOUSE_STOPS
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAStops

@@ -4,7 +4,6 @@ from typing import List
 
 from src.domain.repository.loader_logs_abc import LoaderLogRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
-from src.infrastructure.data_access.alchemy.sa_session_impl import get_sa_session
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SALoaderLog
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
 

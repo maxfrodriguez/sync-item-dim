@@ -7,7 +7,6 @@ from src.domain.entities.shipment import Shipment
 from src.domain.repository.events_abc import EventRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
-from src.infrastructure.data_access.alchemy.sa_session_impl import get_sa_session
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import COMPLETE_EVENT_QUERY, NEXT_ID_WH, WAREHOUSE_EVENTS
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAEvent

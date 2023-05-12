@@ -112,6 +112,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     new_shipment: SAShipment = SAShipment(**row_query)
                     new_shipment.id = next_id
                     new_shipment.hash = shipment_hash
+                    new_shipment.created_at = datetime.utcnow().replace(second=0, microsecond=0)
 
                     # add to the list will use in the bulk copy
                     bulk_shipments.append(new_shipment)
@@ -126,5 +127,6 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     logging.warning(f"Did't find the shipment: {shipment_id}")
 
         # bulk copy de bulk_shipments
+
         async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
             wh_client.bulk_copy(bulk_shipments)

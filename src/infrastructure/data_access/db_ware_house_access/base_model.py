@@ -30,11 +30,12 @@ class SAModelBaseWareHouse:
         unique=True,
         nullable=False,
     )
-    created_at = Column(
-        DateTime(timezone=True),
-        default=datetime.now(tz=utc).replace(second=0, microsecond=0),
-        nullable=False,
-    )
+    
+    # created_at = Column(
+    #     DateTime(timezone=True),
+    #     default=datetime.now(tz=utc).replace(second=0, microsecond=0),
+    #     nullable=False,
+    # )
 
     @classmethod
     def find(cls, db_session: Session, id: str) -> Self | None:

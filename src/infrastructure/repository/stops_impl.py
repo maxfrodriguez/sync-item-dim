@@ -18,7 +18,7 @@ from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client im
 class StopsImpl(StopsRepositoryABC):
     async def get_stop_by_id(self, events: List[int]):
         ids = ", ".join(f"'{event_id}'" for event_id in events)
-        async with Tower121DdConnector(stage=ENVIRONMENT.UAT) as tower_121_client:
+        async with Tower121DdConnector(stage=ENVIRONMENT.PRD) as tower_121_client:
             result = await tower_121_client.execute_select(STOPS_QUERY.format(ids))
             if result:
                 stops: List[Stop] = Stop.create_stops(result)
@@ -36,7 +36,7 @@ class StopsImpl(StopsRepositoryABC):
     async def save_and_sync_stops(self, list_of_shipments: List[Shipment]):
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
-        async with Tower121DdConnector(stage=ENVIRONMENT.UAT) as tower_121_client:
+        async with Tower121DdConnector(stage=ENVIRONMENT.PRD) as tower_121_client:
             rows = tower_121_client.execute_select(STOPS_QUERY.format(ids))
 
         # if rows is empty, raise the exeption to close the process because we need to loggin just in application layer
@@ -49,7 +49,7 @@ class StopsImpl(StopsRepositoryABC):
         bulk_stops: List[SAStops] = []
         event_ids = ", ".join(f"'{stop['pt_event_id']}'" for stop in rows)
 
-        async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("stops"))
             wh_stops: List[Dict[str, Any]] = wh_client.execute_select(WAREHOUSE_STOPS.format(event_ids))
 
@@ -105,5 +105,5 @@ class StopsImpl(StopsRepositoryABC):
                     logging.warning(f"Did't find the shipment: {unique_key_event}")
 
         # Bulk insert Stops.
-        async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_stops)

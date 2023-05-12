@@ -18,7 +18,7 @@ from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
 class DriverImpl(DriverRepositoryABC):
     async def get_driver_pt(self, pt_driver_id: int) -> Driver:
         try:
-            async with PTSQLAnywhere(stage=ENVIRONMENT.UAT) as sybase_client:
+            async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
                 result: Generator[Record, None, None] = sybase_client.SELECT(
                     PT_DRIVERS_QUERY.format(pt_driver_id)
                 )
@@ -34,7 +34,7 @@ class DriverImpl(DriverRepositoryABC):
 
     async def save_driver(self, pt_driver_id: int) -> None:
         try:
-            async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+            async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
                 result = wh_client.execute_select(WH_DRIVERS_QUERY.format(pt_driver_id))
 
                 if not result:
@@ -57,7 +57,7 @@ class DriverImpl(DriverRepositoryABC):
     async def save_drivers(self, list_of_shipments: List[Shipment]):
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
-        async with Tower121DdConnector(stage=ENVIRONMENT.UAT) as tower_121_client:
+        async with Tower121DdConnector(stage=ENVIRONMENT.PRD) as tower_121_client:
             rows = tower_121_client.execute_select(STOPS_QUERY.format(ids))
 
         # if rows is empty, raise the exeption to close the process because we need to loggin just in application layer
@@ -69,7 +69,7 @@ class DriverImpl(DriverRepositoryABC):
         # bulk_shipments : List[SAShipment] = []
         bulk_drivers: List[SADrivers] = []
 
-        async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("drivers"))
 
         assert row_next_id, f"Did't not found next Id for ''Drivers WH'' at {datetime.now()}"
@@ -121,5 +121,5 @@ class DriverImpl(DriverRepositoryABC):
                     logging.warning(f"Did't find the shipment: {unique_key_event}")
 
         # bulk copy de bulk_shipments
-        async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_drivers)

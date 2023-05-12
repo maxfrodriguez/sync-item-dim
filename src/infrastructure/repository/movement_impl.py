@@ -82,7 +82,7 @@ class MovementImpl(MovementRepositoryABC):
 
                             bulk_of_part_movements.append(new_sa_movement_parts)
 
-                async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+                async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
                     wh_client.bulk_copy(bulk_of_movements)
                     wh_client.bulk_copy(bulk_of_part_movements)
 

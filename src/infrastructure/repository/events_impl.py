@@ -18,7 +18,7 @@ class EventImpl(EventRepositoryABC):
     async def save_and_sync_events(self, list_of_shipments: List[Shipment]):
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
-        async with PTSQLAnywhere(stage=ENVIRONMENT.UAT) as sybase_client:
+        async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
             rows: Generator[Record, None, None] = sybase_client.SELECT(
                 COMPLETE_EVENT_QUERY.format(ids), result_type=dict
             )
@@ -34,7 +34,7 @@ class EventImpl(EventRepositoryABC):
 
         event_ids = ", ".join(f"'{event['de_id']}'" for event in rows)
 
-        async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("events"))
             wh_events: List[Dict[str, Any]] = wh_client.execute_select(WAREHOUSE_EVENTS.format(event_ids))
 
@@ -88,5 +88,5 @@ class EventImpl(EventRepositoryABC):
 
         # bulk copy de bulk_shipments
             
-        async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_events)

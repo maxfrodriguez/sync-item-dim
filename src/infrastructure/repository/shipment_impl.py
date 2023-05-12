@@ -23,7 +23,7 @@ from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
 class ShipmentImpl(ShipmentRepositoryABC):
 
     async def get_shipment_by_id(self, shipment: Shipment) -> Shipment:
-        async with PTSQLAnywhere(stage=ENVIRONMENT.UAT) as sybase_client:
+        async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
             result: Generator[Record, None, None] = sybase_client.SELECT(
                 COMPLETE_EVENT_QUERY.format(shipment.ds_id), result_type=dict
             )
@@ -42,7 +42,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
             if not latest_sa_mod_log:
                 return
 
-        async with PTSQLAnywhere(stage=ENVIRONMENT.UAT) as sybase_client:
+        async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
             result: Generator[Record, None, None] = sybase_client.SELECT(
                 query_to_execute.format(latest_sa_mod_log.mod_highest_version)
             )
@@ -61,7 +61,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
     async def save_and_sync_shipment(self, list_of_shipments: List[Shipment]):
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
-        async with PTSQLAnywhere(stage=ENVIRONMENT.UAT) as sybase_client:
+        async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
             rows: Generator[Record, None, None] = sybase_client.SELECT(
                 COMPLETE_SHIPMENT_QUERY.format(ids), result_type=dict
             )
@@ -74,7 +74,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
         # create a list of rateconf_shipment objects
         bulk_shipments: List[SAShipment] = []
 
-        async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("shipments"))
             # Get List Shipment ID, DS_ID, HASH
             wh_shipments: List[Dict[str, Any]] = wh_client.execute_select(WAREHOUSE_SHIPMENTS.format(ids))
@@ -128,5 +128,5 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
         # bulk copy de bulk_shipments
 
-        async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_shipments)

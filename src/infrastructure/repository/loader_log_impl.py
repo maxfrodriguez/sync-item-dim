@@ -20,7 +20,7 @@ class LoaderLogImpl(LoaderLogRepositoryABC):
                 created_at= datetime.utcnow().replace(second=0, microsecond=0)
             )
 
-            async with WareHouseDbConnector(stage=ENVIRONMENT.UAT) as wh_client:
+            async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
                 wh_client.save_object(new_modlog)
             
         except Exception as e:

@@ -37,9 +37,10 @@ class EventImpl(EventRepositoryABC):
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("events"))
             wh_events: List[Dict[str, Any]] = wh_client.execute_select(WAREHOUSE_EVENTS.format(event_ids))
-
-        events_hash_list = {wh_event['de_id']: wh_event['hash'] for wh_event in wh_events}
-        event_id_list = {wh_event['de_id']: wh_event['id'] for wh_event in wh_events}
+        
+        if wh_events:
+            events_hash_list = {wh_event['de_id']: wh_event['hash'] for wh_event in wh_events}
+            event_id_list = {wh_event['de_id']: wh_event['id'] for wh_event in wh_events}
 
         assert row_next_id, f"Did't not found next Id for ''Events WH'' at {datetime.now()}"
 

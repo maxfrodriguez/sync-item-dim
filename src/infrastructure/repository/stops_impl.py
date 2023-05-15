@@ -53,7 +53,8 @@ class StopsImpl(StopsRepositoryABC):
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("stops"))
             wh_stops: List[Dict[str, Any]] = wh_client.execute_select(WAREHOUSE_STOPS.format(event_ids))
 
-        stops_hash_list = {wh_stop['pt_event_id']: wh_stop['hash'] for wh_stop in wh_stops}
+        if wh_stops:
+            stops_hash_list = {wh_stop['pt_event_id']: wh_stop['hash'] for wh_stop in wh_stops}
 
         assert row_next_id, f"Did't not found next Id for ''Stops WH'' at {datetime.now()}"
 

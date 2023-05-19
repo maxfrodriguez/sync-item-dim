@@ -84,7 +84,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
         assert row_next_id, f"Did't not found next Id for ''Shipments WH'' at {datetime.now()}"
 
-        next_id = row_next_id[0]["NextId"]
+        next_id = row_next_id[0]["NextId"] if row_next_id[0]["NextId"] is not None else 0
 
         # read shipments_query one by one
         for row_query in rows:

@@ -13,6 +13,7 @@ from src.infrastructure.data_access.db_121tower_access.tower121_anywhere_client 
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import NEXT_ID_WH, STOPS_QUERY, WAREHOUSE_STOPS
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAStops
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
+from src.infrastructure.repository.recalculate_movements_impl import RecalculateMovementsImpl
 
 
 class StopsImpl(StopsRepositoryABC):
@@ -33,7 +34,8 @@ class StopsImpl(StopsRepositoryABC):
             except Exception as e:
                 logging.error(f"Error in save_stops: {e}")
 
-    async def save_and_sync_stops(self, list_of_shipments: List[Shipment]):
+    async def save_and_sync_stops(self, list_of_shipments: List[Shipment], recalculate_movements_repository: RecalculateMovementsImpl):
+        stops_hash_list = {}
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
         async with Tower121DdConnector(stage=ENVIRONMENT.PRD) as tower_121_client:
@@ -58,7 +60,8 @@ class StopsImpl(StopsRepositoryABC):
 
         assert row_next_id, f"Did't not found next Id for ''Stops WH'' at {datetime.now()}"
 
-        next_id = row_next_id[0]["NextId"]
+        next_id = row_next_id[0]["NextId"] if row_next_id[0]["NextId"] is not None else 0
+
         if next_id is None:
             next_id = 0
 
@@ -68,12 +71,17 @@ class StopsImpl(StopsRepositoryABC):
             # unique_key_shipment = row_query["tmp"]
             stop_hash = deep_hash(row_query)
             unique_key_event = int(row_query["pt_event_id"])
+            shipment_id = row_query["ds_id"]
 
             # # validate if the unique_rateconf_key is not in the set list to avoid duplicates of the same RateConfShipment
             # if unique_key_shipment not in unique_shipment:
             if unique_key_event not in unique_event:
                 # add the shipment_obj to the set list
                 unique_event.add(unique_key_event)
+
+                # current_shipment = [
+                #     shipment for shipment in list_of_shipments if shipment.ds_id == shipment_id
+                # ][0]
 
                 current_event = next(
                     (
@@ -100,6 +108,10 @@ class StopsImpl(StopsRepositoryABC):
                     current_stop.id = next_id
                     current_event.stop = current_stop
                     
+                    # Sends shipment information to recalculate movements
+                    # current_shipment.has_changed_stops = True
+                    # recalculate_movements_repository.recalculate_movements(shipment=current_shipment)
+
                     bulk_stops.append(new_stop)
                     next_id += 1
                 else:

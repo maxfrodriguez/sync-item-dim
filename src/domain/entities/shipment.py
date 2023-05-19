@@ -14,3 +14,5 @@ class Shipment:
     movements: List[Movement] = field(default_factory=list)
     id: int = None
     tmp_type: str = None
+    has_changed_events: bool = False
+    has_changed_stops: bool = False

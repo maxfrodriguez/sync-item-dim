@@ -12,10 +12,12 @@ from src.infrastructure.data_access.db_profit_tools_access.queries.queries impor
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAEvent
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
 from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
+from src.infrastructure.repository.recalculate_movements_impl import RecalculateMovementsImpl
 
 
 class EventImpl(EventRepositoryABC):
-    async def save_and_sync_events(self, list_of_shipments: List[Shipment]):
+    async def save_and_sync_events(self, list_of_shipments: List[Shipment], recalculate_movements_repository: RecalculateMovementsImpl):
+        events_hash_list = {}
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
         async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
@@ -44,7 +46,7 @@ class EventImpl(EventRepositoryABC):
 
         assert row_next_id, f"Did't not found next Id for ''Events WH'' at {datetime.now()}"
 
-        next_id = row_next_id[0]["NextId"]
+        next_id = row_next_id[0]["NextId"] if row_next_id[0]["NextId"] is not None else 0
 
         # read shipments_query one by one
         for row_query in rows:
@@ -63,6 +65,7 @@ class EventImpl(EventRepositoryABC):
                     shipment for shipment in list_of_shipments if shipment.ds_id == shipment_id
                 ][0]
 
+                
                 if current_shipment:
                     # Validate event hash
                     if (event_hash and event_id in events_hash_list and events_hash_list[event_id]) and str(event_hash) == events_hash_list[event_id]:
@@ -71,6 +74,7 @@ class EventImpl(EventRepositoryABC):
                         current_event.id = int(event_id_list[event_id])
                         current_shipment.events.append(current_event)
                         continue
+
 
                     row_query.pop("ds_id", None)
                     new_event: SAEvent = SAEvent(**row_query)
@@ -81,6 +85,10 @@ class EventImpl(EventRepositoryABC):
                     current_event = Event(**row_query)
                     current_event.id = next_id
                     current_shipment.events.append(current_event)
+
+                    # Sends shipment information to recalculate movements
+                    current_shipment.has_changed_events = True
+                    recalculate_movements_repository.recalculate_movements(shipment=current_shipment)
 
                     bulk_events.append(new_event)
                     next_id += 1

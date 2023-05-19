@@ -10,8 +10,8 @@ from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 
 async def conect(enviroment):
     async with KeyVaultImpl(enviroment) as kv:
-        credential = await kv.get_secret("EVENT-GRID-ACCESS-KEY-CONT-HISTORY")
-        endpoint = await kv.get_secret("EVENT-GRID-ENDPOINT-CONT-HISTORY")
+        credential = await kv.get_secret("EVENT-GRID-ACCESS-KEY-CALC-MOVEMENTS")
+        endpoint = await kv.get_secret("EVENT-GRID-ENDPOINT-CALC-MOVEMENTS")
 
     credential = AzureKeyCredential(credential)
     _client = EventGridPublisherClient(endpoint, credential)

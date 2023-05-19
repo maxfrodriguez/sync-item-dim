@@ -34,7 +34,7 @@ class StopsImpl(StopsRepositoryABC):
             except Exception as e:
                 logging.error(f"Error in save_stops: {e}")
 
-    async def save_and_sync_stops(self, list_of_shipments: List[Shipment], recalculate_movements_repository: RecalculateMovementsImpl):
+    async def save_and_sync_stops(self, list_of_shipments: List[Shipment]):
         stops_hash_list = {}
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
@@ -71,17 +71,12 @@ class StopsImpl(StopsRepositoryABC):
             # unique_key_shipment = row_query["tmp"]
             stop_hash = deep_hash(row_query)
             unique_key_event = int(row_query["pt_event_id"])
-            shipment_id = row_query["ds_id"]
 
             # # validate if the unique_rateconf_key is not in the set list to avoid duplicates of the same RateConfShipment
             # if unique_key_shipment not in unique_shipment:
             if unique_key_event not in unique_event:
                 # add the shipment_obj to the set list
                 unique_event.add(unique_key_event)
-
-                # current_shipment = [
-                #     shipment for shipment in list_of_shipments if shipment.ds_id == shipment_id
-                # ][0]
 
                 current_event = next(
                     (

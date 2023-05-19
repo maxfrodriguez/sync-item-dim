@@ -16,7 +16,7 @@ from src.infrastructure.repository.recalculate_movements_impl import Recalculate
 
 
 class EventImpl(EventRepositoryABC):
-    async def save_and_sync_events(self, list_of_shipments: List[Shipment], recalculate_movements_repository: RecalculateMovementsImpl):
+    async def save_and_sync_events(self, list_of_shipments: List[Shipment]):
         events_hash_list = {}
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
@@ -85,10 +85,8 @@ class EventImpl(EventRepositoryABC):
                     current_event = Event(**row_query)
                     current_event.id = next_id
                     current_shipment.events.append(current_event)
-
                     # Sends shipment information to recalculate movements
                     current_shipment.has_changed_events = True
-                    recalculate_movements_repository.recalculate_movements(shipment=current_shipment)
 
                     bulk_events.append(new_event)
                     next_id += 1

@@ -31,43 +31,6 @@ naming_convention = {
 metadata = MetaData(naming_convention=naming_convention)
 Base = declarative_base(metadata=metadata)
 
-# class SAMovementWareHouse(Base, SAModelBaseWareHouse):
-#     __tablename__ = "fact_movements"
-
-#     shipment_id = Column(Integer, nullable=False)
-#     event_origin_id = Column(Integer, nullable=False)
-#     event_destination_id = Column(Integer, nullable=False)
-#     driver_id = Column(Integer, nullable=True)
-#     carrier_id = Column(Integer, nullable=True)
-#     hash = Column(String, nullable=False)
-#     kpi_distance_miles = Column(Float, nullable=True)
-#     kpi_distance_time = Column(Integer, nullable=True)
-#     kpi_is_st_capable = Column(Boolean, nullable=True)
-#     kpi_is_st_achieved = Column(Boolean, nullable=True)
-#     kpi_driver_adherence = Column(Boolean, nullable=True)
-
-#     movement_parts = relationship("SAMovementPartWareHouse", cascade="all, delete-orphan", back_populates="movement")
-
-#     @classmethod
-#     async def get_movement_by_id(cls, orm_client: AlchemyBase, id: int) -> Self | None:
-#         try:
-#             statement = select(cls).where(cls.shipment_id == id)
-#             result = await orm_client.execute_statement(query=statement)
-#             instance: Self | None = result
-#             return instance
-#         except Exception as e:
-#             logging.error(f"Error executing query: {statement}")
-
-
-# class SAMovementPartWareHouse(Base, SAModelBaseWareHouse):
-#     __tablename__ = "movement_parts"
-
-#     event_origin_id = Column(Integer, nullable=False)
-#     event_destination_id = Column(Integer, nullable=False)
-
-#     movement_id = Column(UNIQUEIDENTIFIER, ForeignKey("fact_movements.id", ondelete="CASCADE"), nullable=False)
-#     movement = relationship("SAMovementWareHouse", uselist=False, back_populates="movement_parts")
-
 
 class SALoaderLog(Base, SAModelBaseWareHouse):
     __tablename__ = "loader_logs"
@@ -87,6 +50,7 @@ class SAShipment(Base, SAModelBaseWareHouse):
 
     ds_id = Column(Integer, nullable=False)
     ds_status = Column(String, nullable=True)
+    template_id = Column(Integer, nullable=True)
     ds_status_text = Column(String, nullable=True)
     MasterBL = Column(String, nullable=True)
     ds_hazmat = Column(String, nullable=True)
@@ -148,6 +112,9 @@ class SAShipment(Base, SAModelBaseWareHouse):
         ...
 
     events = relationship("SAEvent", back_populates="shipment")
+
+class SATemplate(SAShipment):
+    __tablename__ = "templates"
 
 
 class SAEvent(Base, SAModelBaseWareHouse):

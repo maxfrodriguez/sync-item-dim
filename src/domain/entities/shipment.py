@@ -16,3 +16,4 @@ class Shipment:
     tmp_type: str = None
     has_changed_events: bool = False
     has_changed_stops: bool = False
+    ds_status: str = None

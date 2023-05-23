@@ -78,15 +78,16 @@ class StopsImpl(StopsRepositoryABC):
                 # add the shipment_obj to the set list
                 unique_event.add(unique_key_event)
 
-                current_event = next(
-                    (
-                        event
-                        for shipment in list_of_shipments
-                        for event in shipment.events
-                        if event.de_id == unique_key_event
-                    ),
-                    None,
+                current_shipment, current_event = next(
+                (
+                    (shipment, event)
+                    for shipment in list_of_shipments
+                    for event in shipment.events
+                    if event.de_id == unique_key_event
+                ),
+                    (None, None),
                 )
+
 
                 if current_event:
                     # Validate stop hash
@@ -104,8 +105,7 @@ class StopsImpl(StopsRepositoryABC):
                     current_event.stop = current_stop
                     
                     # Sends shipment information to recalculate movements
-                    # current_shipment.has_changed_stops = True
-                    # recalculate_movements_repository.recalculate_movements(shipment=current_shipment)
+                    current_shipment.has_changed_stops = True
 
                     bulk_stops.append(new_stop)
                     next_id += 1

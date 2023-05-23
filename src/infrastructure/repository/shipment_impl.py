@@ -50,7 +50,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
             if result:
                 try:
                     shipments = [
-                        Shipment(ds_id=shipment["ds_id"], modlog=shipment["r_mod_id"])
+                        Shipment(ds_id=shipment["ds_id"], modlog=shipment["r_mod_id"], ds_status=shipment["ds_status"])
                         for shipment in result
                     ]
                 except Exception as e:

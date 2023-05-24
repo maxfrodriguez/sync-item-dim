@@ -127,9 +127,14 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     if new_shipment.ds_status != 'A':
                         bulk_shipments.append(new_shipment)
                     else:
-                        new_sa_template = SATemplate(**dict(new_shipment))
+                        new_sa_template = SATemplate(**row_query)
                         new_sa_template.id =  next_id_template
+                        template_id = re.sub('[^0-9]', '', new_sa_template.template_id)
+                        new_sa_template.template_id = None if not template_id else int(template_id) 
+                        new_sa_template.hash = shipment_hash
+                        new_sa_template.created_at = datetime.utcnow().replace(second=0, microsecond=0)
                         bulk_templates.append(new_sa_template)
+                        next_id_template += 1
 
                     # fill the shipment entity with the data we need to calculate the KPI
                     filtered_shipment.tmp_type = new_shipment.TmpType

@@ -59,7 +59,8 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
             return shipments if len(shipments) > 0 else None
 
-    async def save_and_sync_shipment(self, list_of_shipments: List[Shipment]):
+
+    async def save_and_sync_shipment(self, list_of_shipments: List[Shipment]) -> List[Shipment]:
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
         async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
@@ -149,3 +150,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_shipments)
             wh_client.bulk_copy(bulk_templates)
+        
+        # Cleans Templates from list of shipments to avoid saving events for them
+        cleaned_shipments = [shipment for shipment in list_of_shipments if shipment.ds_status != 'A']
+        list_of_shipments = cleaned_shipments
+
+        return list_of_shipments

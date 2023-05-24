@@ -322,9 +322,9 @@ LEFT JOIN [DBA].[modlog_ship] md_ds
   ON ds.ds_id = md_ds.ds_id
 LEFT JOIN [DBA].[modlog] md
   ON md.mod_id = md_ds.mod_id
-WHERE md.mod_datetime BETWEEN '2023-01-01 00:00:00' AND '2023-03-31 23:59:59'
+WHERE md.mod_datetime BETWEEN '2020-01-01 00:00:00' AND '2023-05-31 23:59:59'
 AND mod_type = 'C'
-AND ds.ds_status = 'W'
+AND ds.ds_status = 'A'
 GROUP BY ds.ds_id,
          ds.ds_status
 """

@@ -97,6 +97,7 @@ class SAShipment(Base, SAModelBaseWareHouse):
     chassis_id = Column(String, nullable=True)
     eq_h_info_line = Column(String, nullable=True)
     eq_h_info_type = Column(String, nullable=True)
+    st_custom_9 = Column(String, nullable=True)
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
 
@@ -165,6 +166,7 @@ class SATemplate(Base, SAModelBaseWareHouse):
     chassis_id = Column(String, nullable=True)
     eq_h_info_line = Column(String, nullable=True)
     eq_h_info_type = Column(String, nullable=True)
+    st_custom_9 = Column(String, nullable=True)
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
 

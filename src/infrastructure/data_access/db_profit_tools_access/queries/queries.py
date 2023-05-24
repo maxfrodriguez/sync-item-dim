@@ -1,26 +1,5 @@
 from typing import Final
 
-# MODLOG_QUERY: Final[
-#     str
-# ] = """
-# SELECT DISTINCT
-#   ds.ds_id,
-#   ds.ds_status,
-#   MAX(md_ds.mod_id) AS r_mod_id
-# FROM [DBA].[disp_ship] ds
-# LEFT JOIN [DBA].[modlog_ship] md_ds
-#   ON ds.ds_id = md_ds.ds_id
-# WHERE ds.ds_status = 'K'
-# OR (ds.ds_status IN ('N', 'Q', 'T', 'W')
-# AND md_ds.mod_id IS NOT NULL
-# )
-# GROUP BY ds.ds_id,
-#          ds.ds_status
-# HAVING ds.ds_status = 'K'
-# OR MAX(md_ds.mod_id) > {}
-# ORDER BY ds.ds_status DESC
-# """
-
 MODLOG_QUERY: Final[str] = """
 SELECT DISTINCT
   ds.ds_id,
@@ -34,18 +13,6 @@ GROUP BY ds.ds_id,
 HAVING MAX(md_ds.mod_id) > {}
 ORDER BY ds.ds_status DESC
 """
-
-# SHIPMENT_QUERY: Final[
-#    str
-# ] = """
-# SELECT
-# 	modlog_ship.ds_id AS ds_id,
-#    max(modlog_ship.mod_id) AS r_mod_id
-# FROM DBA.modlog_ship
-# GROUP BY modlog_ship.ds_id
-# HAVING max(modlog_ship.mod_id) > {}
-# ORDER BY r_mod_id DESC;
-# """
 
 NEXT_ID_WH: Final[
     str
@@ -166,7 +133,14 @@ SELECT DISTINCT
     WHEN ds.movecode = 'E' THEN 'EXPORT'
     WHEN ds.movecode = 'O' THEN 'ONEWAY'
     ELSE 'NOT FOUND'
-  END) AS TmpType
+  END) AS TmpType,
+  eqpC.eq_id AS eq_c_info_id,
+  eqinfoC.eq_type AS eq_c_info_eq_type,
+  eqinfoC.eq_ref AS container_id,
+  eqpH.eq_id AS eq_h_info_id,
+  eqinfoH.eq_type AS eq_h_info_eq_type,
+  eqinfoH.eq_ref AS chassis_id,
+  ds.custom9 AS st_custom_9
 FROM [DBA].[disp_ship] ds
 INNER JOIN [DBA].[companies] c1
   ON c1.co_id = ds.ds_billto_id
@@ -180,6 +154,16 @@ LEFT JOIN [DBA].[modlog_ship] md_ds
   ON ds.ds_id = md_ds.ds_id
 LEFT JOIN [DBA].[modlog] md
   ON md.mod_id = md_ds.mod_id
+LEFT JOIN [DBA].[equip2_shiplinks] eqpC
+  ON eqpC.ds_id = ds.ds_id
+INNER JOIN [DBA].[equip2_info] eqinfoC
+  ON eqinfoC.eq_id = eqpC.eq_id
+  AND eqinfoC.eq_type = 'C'
+LEFT JOIN [DBA].[equip2_shiplinks] eqpH
+  ON eqpH.ds_id = ds.ds_id
+INNER JOIN [DBA].[equip2_info] eqinfoH
+  ON eqinfoH.eq_id = eqpH.eq_id
+  AND eqinfoH.eq_type = 'H'
 WHERE ds.ds_id IN ({})
 AND md_ds.mod_type = 'C'
 ORDER BY ds.ds_id
@@ -255,62 +239,6 @@ WHERE shipments.reference IN ({})
   AND locations_geo_fences.deactivated_dt is Null
 """
 
-# STOPS_QUERY: Final = """
-# SELECT
-#     drivers.id AS id_driver,
-#     drivers.name AS name_driver,
-#     events_external_references.external_id AS PT_ID,
-#     events_external_references.ID,
-#     events.id AS id_evento,
-#     events.location_id AS location_id_event,
-#     events.arrival_dt,
-#     events.departure_dt,
-#     events.type AS type_event,
-#     locations.name AS location_name,
-#     locations.type AS type_location,
-#     locations_external_references.external_id AS location_id_pt,
-#     CAST(shipments.reference AS integer) AS tmp,
-#     stops.id AS id_stops,
-#     CASE
-#         WHEN stops__events.manually_linked = FALSE THEN 'Automatic'
-#         WHEN stops__events.manually_linked = TRUE THEN 'Manual'
-#         WHEN stops__events.manually_linked IS NULL THEN 'Unlinked'
-#     END AS linked
-# FROM supra.events
-# LEFT JOIN supra.stops__events
-#     ON stops__events.event_id = events.id
-# INNER JOIN supra.shipments
-#     ON shipments.id = events.shipment_id
-# INNER JOIN supra.events_external_references
-#     ON events_external_references.linked_object_id = events.id
-# INNER JOIN supra.drivers
-#     ON drivers.id = events.driver_id
-# INNER JOIN supra.locations
-#     ON locations.id = events.location_id
-# INNER JOIN supra.locations_external_references
-#     ON locations_external_references.linked_object_id = locations.id
-#     AND locations_external_references.connection_id = 5
-# LEFT JOIN supra.stops
-#     ON stops.id = stops__events.stop_id
-
-# WHERE shipments.reference IN ({})
-# """
-
-# CLOSED_MODLOGS_QUERY: Final = """
-# SELECT DISTINCT
-#     ds.ds_id,
-#     ds.ds_status,
-#     MAX(md_ds.mod_id) AS r_mod_id
-# FROM [DBA].[disp_ship] ds
-# LEFT JOIN [DBA].[modlog_ship] md_ds
-#     ON ds.ds_id = md_ds.ds_id
-# WHERE ds.ds_status = 'W'
-# AND ds.ds_ship_date > '2023-01-01'
-# AND ds.ds_ship_date < '2023-03-31'
-
-# GROUP BY ds.ds_id,
-#          ds.ds_status
-# """
 
 CLOSED_MODLOGS_QUERY: Final = """
 SELECT DISTINCT
@@ -328,6 +256,7 @@ AND ds.ds_status = 'A'
 GROUP BY ds.ds_id,
          ds.ds_status
 """
+
 
 WAREHOUSE_SHIPMENTS: Final[str] = """
 WITH last_created_tmp
@@ -352,6 +281,7 @@ GROUP BY shipments.ds_id,
          shipments.created_at
 """
 
+
 WAREHOUSE_EVENTS: Final[str] = """
 WITH last_created_tmp
 AS (SELECT DISTINCT
@@ -374,6 +304,7 @@ GROUP BY events.de_id,
          events.hash,
          events.created_at
 """
+
 
 WAREHOUSE_STOPS: Final[str] = """
 WITH last_created_tmp

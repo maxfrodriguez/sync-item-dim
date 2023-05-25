@@ -6,6 +6,7 @@ from src.infrastructure.repository.events_impl import EventImpl
 from src.infrastructure.repository.recalculate_movements_impl import RecalculateMovementsImpl
 from src.infrastructure.repository.shipment_impl import ShipmentImpl
 from src.infrastructure.repository.stops_impl import StopsImpl
+from src.infrastructure.repository.street_turn_impl import StreetTurnImpl
 
 
 async def sync_dimension_tables(shipments: List[Shipment]):

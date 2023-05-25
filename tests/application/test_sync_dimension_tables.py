@@ -15,7 +15,6 @@ class TestSyncUp:
         if shipments:
             modlog_ids = [shipment.modlog for shipment in shipments]
             
-            
             await sync_dimension_tables(shipments=shipments)
             await finish_synchronization(
                 lowest_modlog=min(modlog_ids),

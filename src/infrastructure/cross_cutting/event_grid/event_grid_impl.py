@@ -8,10 +8,10 @@ from src.infrastructure.cross_cutting.event_grid.event_grid_abc import EventGrid
 from src.infrastructure.cross_cutting.key_vault_impl import KeyVaultImpl
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 
-async def conect(enviroment):
+async def conect(enviroment: ENVIRONMENT, credential: str, endpoint: str):
     async with KeyVaultImpl(enviroment) as kv:
-        credential = await kv.get_secret("EVENT-GRID-ACCESS-KEY-CALC-MOVEMENTS")
-        endpoint = await kv.get_secret("EVENT-GRID-ENDPOINT-CALC-MOVEMENTS")
+        credential = await kv.get_secret(credential)
+        endpoint = await kv.get_secret(endpoint)
 
     credential = AzureKeyCredential(credential)
     _client = EventGridPublisherClient(endpoint, credential)
@@ -20,12 +20,14 @@ async def conect(enviroment):
 
 
 class EventGridImpl(EventGridABC):
-    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
+    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD, credential:str = None, endpoint: str = None) -> None:
         self.__environment: ENVIRONMENT = stage
         self.__client_eg: EventGridPublisherClient = None
+        self.__credential: str = credential
+        self.__endpoint: str = endpoint
 
     async def __aenter__(self) -> Self:
-        self.__client_eg = await conect(self.__environment)
+        self.__client_eg = await conect(self.__environment, self.__credential, self.__endpoint)
         return self
 
     async def __aexit__(self, *_) -> None:

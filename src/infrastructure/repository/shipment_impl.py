@@ -19,9 +19,21 @@ from src.infrastructure.data_access.db_profit_tools_access.queries.queries impor
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SALoaderLog, SAShipment, SATemplate
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
 from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
+from src.infrastructure.repository.street_turn_impl import StreetTurnImpl
 
 
 class ShipmentImpl(ShipmentRepositoryABC):
+
+    async def bulk_save_shipment_template_information(self, bulk_of_shipments: List[SAShipment], bulk_of_templates: List[SATemplate]) -> None:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
+            wh_client.bulk_copy(bulk_of_shipments)
+            wh_client.bulk_copy(bulk_of_templates)
+
+    async def emit_to_eg_street_turn(self, eg_shipments: List[Shipment]):
+        if len(eg_shipments) > 0:
+            async with StreetTurnImpl(stage=ENVIRONMENT.PRD) as street_turn_client:
+                await street_turn_client.send_street_turn_information(eg_shipments)
+
 
     async def get_shipment_by_id(self, shipment: Shipment) -> Shipment:
         async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
@@ -31,6 +43,11 @@ class ShipmentImpl(ShipmentRepositoryABC):
             if result:
                 shipment.events = [Event(**event) for event in result]
             return shipment
+        
+    def remove_templates_from_shipments(self, shipment_list: List[Shipment]) -> List[Shipment]:
+        cleaned_shipments = [shipment for shipment in shipment_list if shipment.ds_status != 'A']
+        return cleaned_shipments
+    
 
     async def retrieve_shipment_list(
         self, last_modlog: int = None, query_to_execute: str = MODLOG_QUERY
@@ -61,6 +78,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
 
     async def save_and_sync_shipment(self, list_of_shipments: List[Shipment]) -> List[Shipment]:
+        eg_shipments: List[Shipment] = []
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
         async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
@@ -116,6 +134,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
                         filtered_shipment.id = int(shipment_id_list[shipment_id])
                         continue
 
+                    # Add shipment changed
+                    eg_shipments.append(filtered_shipment)
+
                     # Create a new shipment object with the next id
                     new_shipment: SAShipment = SAShipment(**row_query)
                     template_id = re.sub('[^0-9]', '', new_shipment.template_id)
@@ -146,13 +167,13 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 else:
                     logging.warning(f"Did't find the shipment: {shipment_id}")
 
-        # bulk copy shipments and template objects.
-        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
-            wh_client.bulk_copy(bulk_shipments)
-            wh_client.bulk_copy(bulk_templates)
+        # Insert massive information
+        await self.bulk_save_shipment_template_information(bulk_shipments, bulk_templates)
+
+        # Emit information to EG
+        await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
         
-        # Cleans Templates from list of shipments to avoid saving events for them
-        cleaned_shipments = [shipment for shipment in list_of_shipments if shipment.ds_status != 'A']
-        list_of_shipments = cleaned_shipments
+        # Remove templates from Shipments
+        list_of_shipments = self.remove_templates_from_shipments(shipment_list=list_of_shipments)
 
         return list_of_shipments

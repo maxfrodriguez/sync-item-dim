@@ -137,6 +137,8 @@ SELECT DISTINCT
   eqpC.eq_id AS eq_c_info_id,
   eqinfoC.eq_type AS eq_c_info_eq_type,
   eqinfoC.eq_ref AS container_id,
+  eqlitC.Line AS eq_c_info_line,
+  eqlitC.Type AS eq_c_info_type,
   eqpH.eq_id AS eq_h_info_id,
   eqinfoH.eq_type AS eq_h_info_eq_type,
   eqinfoH.eq_ref AS chassis_id,
@@ -159,6 +161,10 @@ LEFT JOIN [DBA].[equip2_shiplinks] eqpC
 INNER JOIN [DBA].[equip2_info] eqinfoC
   ON eqinfoC.eq_id = eqpC.eq_id
   AND eqinfoC.eq_type = 'C'
+LEFT JOIN [DBA].[equip2_leaseInfo_EP] eqliC
+    ON eqinfoC.eq_id = eqliC.oe_id
+LEFT JOIN [DBA].[EquipmentLeaseType] eqlitC
+    ON eqlitC.id = eqliC.fkequipmentleasetype
 LEFT JOIN [DBA].[equip2_shiplinks] eqpH
   ON eqpH.ds_id = ds.ds_id
 INNER JOIN [DBA].[equip2_info] eqinfoH

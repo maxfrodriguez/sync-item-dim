@@ -70,8 +70,8 @@ class AlchemyBase(metaclass=Singleton):
             params = self.__decode_params(self._secrets["params"])
             connection_str = f"{connection_str}?{params}"
 
-        if alchemyDriverName == "mssql+pyodbc":
-            connection_str = "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
+        # if alchemyDriverName == "mssql+pyodbc":
+        #     connection_str = "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
 
         return create_engine(url=connection_str, echo=True)
 
@@ -170,7 +170,7 @@ def decode_params(params: str) -> str:
 # @alru_cache(maxsize=16)
 async def get_connection_str(stage: ENVIRONMENT) -> str:
     # To local use:
-    return "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
+    # return "mssql+pyodbc://sa:4vk2R6R1kLktS09Q@127.0.0.1:1433/MovementCalculator?driver=ODBC+Driver+17+for+SQL+Server"
 
     user: str | None = None
     password: str | None = None

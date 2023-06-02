@@ -180,6 +180,7 @@ class SAEvent(Base, SAModelBaseWareHouse):
     location_zip = Column(String, nullable=True)
     de_ship_seq = Column(Integer, nullable=True)
     de_conf = Column(String, nullable=True)
+    de_routable = Column(String, nullable=True)
     de_driver = Column(Integer, nullable=True)
     carrier_id = Column(Integer, nullable=True)
     de_appointment = Column(DateTime, nullable=True)

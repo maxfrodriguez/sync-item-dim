@@ -43,6 +43,7 @@ COMPLETE_EVENT_QUERY: Final[
     c1.co_zip AS location_zip,
     de.de_ship_seq,
     de.de_conf,
+    de.Routable AS de_routable,
     CAST(de.de_apptdate AS datetime) + CAST(de.de_appttime AS datetime) AS de_appointment,
     CAST(de.de_arrdate AS datetime) + CAST(de.de_arrtime AS datetime) AS de_arrival,
     CAST(CAST(CASE WHEN de_apptdate IS NULL THEN de_arrdate

@@ -17,9 +17,9 @@ async def sync_dimension_tables(shipments: List[Shipment]):
 
     shipments = await shipment_client.save_and_sync_shipment(list_of_shipments=shipments)
 
-    # if len(shipments) > 0:
-    #     await event_client.save_and_sync_events(list_of_shipments=shipments)
-    #     await stop_client.save_and_sync_stops(list_of_shipments=shipments)
+    if len(shipments) > 0:
+        await event_client.save_and_sync_events(list_of_shipments=shipments)
+        await stop_client.save_and_sync_stops(list_of_shipments=shipments)
 
     #     async with RecalculateMovementsImpl(stage=ENVIRONMENT.PRD) as calc_movements_client:
     #         for shipment in shipments:

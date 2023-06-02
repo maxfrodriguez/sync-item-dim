@@ -168,10 +168,10 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     logging.warning(f"Did't find the shipment: {shipment_id}")
 
         # Insert massive information
-        await self.bulk_save_shipment_template_information(bulk_shipments, bulk_templates)
+        # await self.bulk_save_shipment_template_information(bulk_shipments, bulk_templates)
 
         # Emit information to EG
-        await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
+        # await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
         
         # Remove templates from Shipments
         list_of_shipments = self.remove_templates_from_shipments(shipment_list=list_of_shipments)

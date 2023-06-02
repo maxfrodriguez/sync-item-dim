@@ -362,3 +362,41 @@ SELECT [di_id]
 FROM  [dbo].[drivers]
 WHERE [di_id] = {}
 """
+
+
+FACT_CUSTOMERS_KPI_QUERY: Final[str] = """
+WITH last_shipment
+AS (SELECT
+    ds.ds_id,
+    MAX(created_at) AS created_at
+FROM shipments ds
+GROUP BY ds.ds_id)
+SELECT
+    tm.customer_id,
+    tm.customer_name,
+    tm.ds_id,
+    ds.ds_id,
+    ds.ds_bill_charge,
+    ds.created_at,
+    SUM(mov.kpi_distance_time) AS distance_time
+--    , count(ds.ds_id) as 'Number Of shipments'
+--    , SUM(ds.ds_bill_charge) as 'Total Revenue'
+--    , MONTH(ds.created_at) as MONTH
+FROM templates tm
+INNER JOIN shipments ds
+    ON ds.template_id = tm.template_id
+INNER JOIN last_shipment last
+    ON ds.ds_id = last.ds_id
+    AND ds.created_at = last.created_at
+INNER JOIN movements mov
+    ON mov.sk_shipment_id_fk = ds.id
+
+GROUP BY tm.customer_id,
+         tm.customer_name,
+         tm.ds_id,
+         ds.ds_id,
+         ds.ds_bill_charge,
+         ds.created_at
+
+ORDER BY ds.created_at DESC
+"""

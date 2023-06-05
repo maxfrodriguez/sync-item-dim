@@ -19,6 +19,7 @@ from src.infrastructure.data_access.db_profit_tools_access.queries.queries impor
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SALoaderLog, SAShipment, SATemplate
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
 from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
+from src.infrastructure.repository.fact_customer_kpi_impl import FactCustomerKPIImpl
 from src.infrastructure.repository.street_turn_impl import StreetTurnImpl
 
 
@@ -33,6 +34,12 @@ class ShipmentImpl(ShipmentRepositoryABC):
         if len(eg_shipments) > 0:
             async with StreetTurnImpl(stage=ENVIRONMENT.PRD) as street_turn_client:
                 await street_turn_client.send_street_turn_information(eg_shipments)
+    
+
+    async def emit_to_eg_customer_kpi(self, eg_shipments: List[Shipment]):
+        if len(eg_shipments) > 0:
+            async with FactCustomerKPIImpl(stage=ENVIRONMENT.PRD) as customer_kpi_impl:
+                await customer_kpi_impl.send_customer_kd_info(eg_shipments)
 
 
     async def get_shipment_by_id(self, shipment: Shipment) -> Shipment:
@@ -170,8 +177,11 @@ class ShipmentImpl(ShipmentRepositoryABC):
         # Insert massive information
         await self.bulk_save_shipment_template_information(bulk_shipments, bulk_templates)
 
-        # Emit information to EG
+        # Emit information to EG Street Turns
         await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
+
+        # Emit information to EG Customers KPIs
+        await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
         
         # Remove templates from Shipments
         list_of_shipments = self.remove_templates_from_shipments(shipment_list=list_of_shipments)

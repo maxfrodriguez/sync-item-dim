@@ -143,7 +143,8 @@ SELECT DISTINCT
   eqpH.eq_id AS eq_h_info_id,
   eqinfoH.eq_type AS eq_h_info_eq_type,
   eqinfoH.eq_ref AS chassis_id,
-  ds.custom9 AS st_custom_9
+  ds.custom9 AS st_custom_9,
+  md.mod_datetime as mod_created_pt_dt
 FROM [DBA].[disp_ship] ds
 INNER JOIN [DBA].[companies] c1
   ON c1.co_id = ds.ds_billto_id

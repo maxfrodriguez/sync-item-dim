@@ -169,6 +169,7 @@ class SATemplate(Base, SAModelBaseWareHouse):
     st_custom_9 = Column(String, nullable=True)
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
+    mod_created_pt_dt = Column(DateTime(timezone=True), nullable=True)
 
 class SAEvent(Base, SAModelBaseWareHouse):
     __tablename__ = "events"

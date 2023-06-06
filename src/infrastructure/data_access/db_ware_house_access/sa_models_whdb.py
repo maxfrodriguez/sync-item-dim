@@ -100,6 +100,7 @@ class SAShipment(Base, SAModelBaseWareHouse):
     st_custom_9 = Column(String, nullable=True)
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
+    mod_created_pt_dt = Column(DateTime(timezone=True), nullable=True)
 
     @classmethod
     def find_by_hash(cls, db_session: Session, hash: str) -> int:
@@ -267,3 +268,22 @@ class SADrivers(Base, SAModelBaseWareHouse):
     name = Column(String, nullable=True)
     status = Column(String, nullable=True)
     fleet = Column(String, nullable=True)
+
+
+class SAItems(Base, SAModelBaseWareHouse):
+    __tablename__ = "items"
+
+    sk_id_shipment_fk = Column(BigInteger, nullable=False)
+    ds_id = Column(Integer, nullable=False)
+    di_item_id = Column(Integer, nullable=False)
+    amount_type = Column(Integer, nullable=True)
+    name = Column(String, nullable=True)
+    rate_code_name = Column(String, nullable=True)
+    di_description = Column(String, nullable=True)
+    di_our_itemamt = Column(String, nullable=True)
+    di_pay_itemamt = Column(String, nullable=True)
+    di_quantity = Column(String, nullable=True)
+    last_rated_by = Column(String, nullable=True)
+    tag_list = Column(String, nullable=True)
+    note = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)

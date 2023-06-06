@@ -401,3 +401,27 @@ GROUP BY tm.customer_id,
 
 ORDER BY ds.created_at DESC
 """
+
+ITEMS_QUERY: Final[str] = """
+SELECT DISTINCT
+    ds.ds_id
+    , di_revenue.di_item_id
+    , di_revenue.AmountType AS amount_type
+    , amty.Name AS name
+    , di_revenue.RateCodename AS rate_code_name
+    , di_revenue.di_description
+    , di_revenue.di_our_itemamt
+    , di_revenue.di_pay_itemamt 
+    , di_revenue.di_qty AS di_quantity
+    , di_revenue.LastRatedBy AS last_rated_by
+    , di_revenue.Taglist AS tag_list
+    , di_revenue.Note AS note
+    
+FROM [DBA].[disp_ship] ds
+INNER JOIN dba.disp_items di_revenue ON ds.ds_id = di_revenue.di_shipment_id
+inner join dba.AmountType amty on amty.Id = di_revenue.AmountType
+WHERE 
+    ds.ds_id IN ({})
+ORDER BY 
+    ds.ds_id
+"""

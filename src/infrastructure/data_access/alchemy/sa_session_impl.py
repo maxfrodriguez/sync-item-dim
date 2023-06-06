@@ -124,8 +124,8 @@ class AlchemyBase(metaclass=Singleton):
             # self._session.add_all(objects)
             with self._session.begin():
                 self._session.add_all(objects)
-        except Exception:
-            logging.error(f"Error executing the bulk copy at: {datetime.now()}")
+        except Exception as e:
+            logging.error(f"Error: {e} executing the bulk copy at: {datetime.now()}")
     
     def save_object(self, object: Any) -> None:
         try:

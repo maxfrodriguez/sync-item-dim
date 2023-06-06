@@ -1,7 +1,7 @@
 import re
 import logging
 from datetime import datetime
-from typing import Any, Dict, Generator, List
+from typing import Any, Dict, Generator, List, Literal
 
 from src.domain.entities.shipment import Event, Shipment
 from src.domain.repository.shipment_abc import ShipmentRepositoryABC
@@ -12,11 +12,12 @@ from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client im
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import (
     COMPLETE_EVENT_QUERY,
     COMPLETE_SHIPMENT_QUERY,
+    ITEMS_QUERY,
     MODLOG_QUERY,
     NEXT_ID_WH,
     WAREHOUSE_SHIPMENTS,
 )
-from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SALoaderLog, SAShipment, SATemplate
+from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAItems, SALoaderLog, SAShipment, SATemplate
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
 from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
 from src.infrastructure.repository.fact_customer_kpi_impl import FactCustomerKPIImpl
@@ -25,10 +26,11 @@ from src.infrastructure.repository.street_turn_impl import StreetTurnImpl
 
 class ShipmentImpl(ShipmentRepositoryABC):
 
-    async def bulk_save_shipment_template_information(self, bulk_of_shipments: List[SAShipment], bulk_of_templates: List[SATemplate]) -> None:
+    async def bulk_save_shipment_template_information(self, bulk_of_shipments: List[SAShipment], bulk_of_templates: List[SATemplate], bulk_of_items: List[SAItems]) -> None:
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_of_shipments)
             wh_client.bulk_copy(bulk_of_templates)
+            wh_client.bulk_copy(bulk_of_items)
 
     async def emit_to_eg_street_turn(self, eg_shipments: List[Shipment]):
         if len(eg_shipments) > 0:
@@ -86,15 +88,20 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
     async def save_and_sync_shipment(self, list_of_shipments: List[Shipment]) -> List[Shipment]:
         eg_shipments: List[Shipment] = []
+        items_list: List[SAItems] = []
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
         async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
             rows: Generator[Record, None, None] = sybase_client.SELECT(
                 COMPLETE_SHIPMENT_QUERY.format(ids), result_type=dict
             )
+            rows_items: Generator[Record, None, None] = sybase_client.SELECT(
+                ITEMS_QUERY.format(ids), result_type=dict
+            )
 
-        # if rows is empty, raise the exeption to close the process because we need to loggin just in application layer
+        # if rows/rows_items is empty, raise the exeption to close the process because we need to loggin just in application layer
         assert rows, f"did't not found shipments to sync at {datetime.now()}"
+        assert rows_items, f"didn't found items to sync at {datetime.now()}"
 
         # declare a set list to store the RateConfShipment objects
         unique_shipment_ids = set()
@@ -105,6 +112,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("shipments"))
             row_next_id_template = wh_client.execute_select(NEXT_ID_WH.format("templates"))
+            row_next_id_item = wh_client.execute_select(NEXT_ID_WH.format("items"))
             # Get List Shipment ID, DS_ID, HASH
             wh_shipments: List[Dict[str, Any]] = wh_client.execute_select(WAREHOUSE_SHIPMENTS.format(ids))
 
@@ -117,14 +125,13 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
         next_id = row_next_id[0]["NextId"] if row_next_id[0]["NextId"] is not None else 0
         next_id_template = row_next_id_template[0]["NextId"] if row_next_id_template[0]["NextId"] is not None else 0
-
+        next_id_item = row_next_id_item[0]["NextId"] if row_next_id_item[0]["NextId"] is not None else 0
 
         # read shipments_query one by one
         for row_query in rows:
             # create a KeyRateConfShipment object to store the data from the shipment
             shipment_hash = deep_hash(row_query)
             shipment_id = row_query["ds_id"]
-            # Compare HASH
 
             # validate if the unique_rateconf_key is not in the set list to avoid duplicates of the same RateConfShipment
             if shipment_id not in unique_shipment_ids:
@@ -132,10 +139,12 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 unique_shipment_ids.add(shipment_id)
 
                 filtered_shipments = [shipment for shipment in list_of_shipments if shipment.ds_id == shipment_id]
+                list_of_items = [item for item in rows_items if item['ds_id']== shipment_id]
 
                 if filtered_shipments:
                     # get the shipment to update with the id to be inserted
                     filtered_shipment = filtered_shipments[0]
+
                     # Comparamos Hashes
                     if (shipment_hash and shipment_id in shipments_hash_list and shipments_hash_list[shipment_id]) and str(shipment_hash) == shipments_hash_list[shipment_id]:
                         filtered_shipment.id = int(shipment_id_list[shipment_id])
@@ -151,6 +160,15 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     new_shipment.id = next_id
                     new_shipment.hash = shipment_hash
                     new_shipment.created_at = datetime.utcnow().replace(second=0, microsecond=0)
+
+                    # Saves item_list per shipment
+                    for item in list_of_items:
+                        new_sa_item: SAItems = SAItems(**item)
+                        new_sa_item.id = next_id_item
+                        new_sa_item.sk_id_shipment_fk = next_id
+                        new_sa_item.created_at = datetime.utcnow().replace(second=0, microsecond=0)
+                        items_list.append(new_sa_item)
+                        next_id_item += 1
 
                     # add to the list will use in the bulk copy
                     if new_shipment.ds_status != 'A':
@@ -175,7 +193,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     logging.warning(f"Did't find the shipment: {shipment_id}")
 
         # Insert massive information
-        await self.bulk_save_shipment_template_information(bulk_shipments, bulk_templates)
+        await self.bulk_save_shipment_template_information(bulk_shipments, bulk_templates, items_list)
 
         # Emit information to EG Street Turns
         # await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
@@ -185,5 +203,4 @@ class ShipmentImpl(ShipmentRepositoryABC):
         
         # Remove templates from Shipments
         list_of_shipments = self.remove_templates_from_shipments(shipment_list=list_of_shipments)
-
         return list_of_shipments

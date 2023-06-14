@@ -82,9 +82,11 @@ class SAShipment(Base, SAModelBaseWareHouse):
     del_pk_time = Column(Time, nullable=True)
     ds_origin_id = Column(Integer, nullable=True)
     org_name = Column(String, nullable=True)
+    org_city = Column(String, nullable=True)
     org_zip = Column(String, nullable=True)
     ds_findest_id = Column(Integer, nullable=True)
     destination_name = Column(String, nullable=True)
+    destination_city = Column(String, nullable=True)
     destinantion_zip = Column(String, nullable=True)
     TmpType = Column(String, nullable=True)
     eq_c_info_id = Column(Integer, nullable=True)
@@ -115,10 +117,11 @@ class SAShipment(Base, SAModelBaseWareHouse):
 
     events = relationship("SAEvent", back_populates="shipment")
 
-class SATemplate(Base, SAModelBaseWareHouse):
+class SATemplate(Base):
     __tablename__ = "templates"
 
     ds_id = Column(Integer, nullable=False)
+    ds_id = Column(BigInteger, primary_key=True, unique=True, nullable=False)
     ds_status = Column(String, nullable=True)
     template_id = Column(Integer, nullable=True)
     ds_status_text = Column(String, nullable=True)
@@ -152,9 +155,11 @@ class SATemplate(Base, SAModelBaseWareHouse):
     del_pk_time = Column(Time, nullable=True)
     ds_origin_id = Column(Integer, nullable=True)
     org_name = Column(String, nullable=True)
+    org_city = Column(String, nullable=True)
     org_zip = Column(String, nullable=True)
     ds_findest_id = Column(Integer, nullable=True)
     destination_name = Column(String, nullable=True)
+    destination_city = Column(String, nullable=True)
     destinantion_zip = Column(String, nullable=True)
     TmpType = Column(String, nullable=True)
     eq_c_info_id = Column(Integer, nullable=True)
@@ -280,8 +285,8 @@ class SAItems(Base, SAModelBaseWareHouse):
     name = Column(String, nullable=True)
     rate_code_name = Column(String, nullable=True)
     di_description = Column(String, nullable=True)
-    di_our_itemamt = Column(String, nullable=True)
-    di_pay_itemamt = Column(String, nullable=True)
+    di_our_itemamt = Column(Float, nullable=True)
+    di_pay_itemamt = Column(Float, nullable=True)
     di_quantity = Column(String, nullable=True)
     last_rated_by = Column(String, nullable=True)
     tag_list = Column(String, nullable=True)

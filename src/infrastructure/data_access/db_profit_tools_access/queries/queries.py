@@ -124,10 +124,12 @@ SELECT DISTINCT
     ELSE ds.delbytime
   END) AS del_pk_time,
   ds.ds_origin_id,
+  org.co_city as org_city,
   org.co_name AS org_name,
   org.co_zip AS org_zip,
   ds.ds_findest_id,
   des.co_name AS destination_name,
+  des.co_city as destination_city,
   des.co_zip AS destinantion_zip,
   (CASE
     WHEN ds.movecode = 'I' THEN 'IMPORT'
@@ -258,9 +260,9 @@ LEFT JOIN [DBA].[modlog_ship] md_ds
   ON ds.ds_id = md_ds.ds_id
 LEFT JOIN [DBA].[modlog] md
   ON md.mod_id = md_ds.mod_id
-WHERE md.mod_datetime BETWEEN '2020-01-01 00:00:00' AND '2023-05-31 23:59:59'
+WHERE md.mod_datetime BETWEEN '2020-01-01 00:00:00' AND '2022-12-31 23:59:59'
 AND mod_type = 'C'
-AND ds.ds_status = 'A'
+AND ds.ds_status IN ('A')
 GROUP BY ds.ds_id,
          ds.ds_status
 """

@@ -111,7 +111,6 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("shipments"))
-            row_next_id_template = wh_client.execute_select(NEXT_ID_WH.format("templates"))
             row_next_id_item = wh_client.execute_select(NEXT_ID_WH.format("items"))
             # Get List Shipment ID, DS_ID, HASH
             wh_shipments: List[Dict[str, Any]] = wh_client.execute_select(WAREHOUSE_SHIPMENTS.format(ids))
@@ -120,11 +119,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
         shipment_id_list = {wh_shipment['ds_id']: wh_shipment['id'] for wh_shipment in wh_shipments}
 
         assert row_next_id, f"Did't not found next Id for ''Shipments WH'' at {datetime.now()}"
-        assert row_next_id_template, f"Did't not found next Id for ''Templates WH'' at {datetime.now()}"
 
 
         next_id = row_next_id[0]["NextId"] if row_next_id[0]["NextId"] is not None else 0
-        next_id_template = row_next_id_template[0]["NextId"] if row_next_id_template[0]["NextId"] is not None else 0
         next_id_item = row_next_id_item[0]["NextId"] if row_next_id_item[0]["NextId"] is not None else 0
 
         # read shipments_query one by one
@@ -175,13 +172,11 @@ class ShipmentImpl(ShipmentRepositoryABC):
                         bulk_shipments.append(new_shipment)
                     else:
                         new_sa_template = SATemplate(**row_query)
-                        new_sa_template.id =  next_id_template
                         template_id = re.sub('[^0-9]', '', new_sa_template.template_id)
                         new_sa_template.template_id = None if not template_id else int(template_id) 
                         new_sa_template.hash = shipment_hash
                         new_sa_template.created_at = datetime.utcnow().replace(second=0, microsecond=0)
                         bulk_templates.append(new_sa_template)
-                        next_id_template += 1
 
                     # fill the shipment entity with the data we need to calculate the KPI
                     filtered_shipment.tmp_type = new_shipment.TmpType
@@ -196,10 +191,10 @@ class ShipmentImpl(ShipmentRepositoryABC):
         await self.bulk_save_shipment_template_information(bulk_shipments, bulk_templates, items_list)
 
         # Emit information to EG Street Turns
-        await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
+        # await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
 
-        # Emit information to EG Customers KPIs
-        await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
+        # # Emit information to EG Customers KPIs
+        # await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
         
         # Remove templates from Shipments
         list_of_shipments = self.remove_templates_from_shipments(shipment_list=list_of_shipments)

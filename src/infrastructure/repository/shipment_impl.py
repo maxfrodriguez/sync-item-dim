@@ -191,10 +191,10 @@ class ShipmentImpl(ShipmentRepositoryABC):
         await self.bulk_save_shipment_template_information(bulk_shipments, bulk_templates, items_list)
 
         # Emit information to EG Street Turns
-        # await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
+        await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
 
-        # # Emit information to EG Customers KPIs
-        # await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
+        # Emit information to EG Customers KPIs
+        await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
         
         # Remove templates from Shipments
         list_of_shipments = self.remove_templates_from_shipments(shipment_list=list_of_shipments)

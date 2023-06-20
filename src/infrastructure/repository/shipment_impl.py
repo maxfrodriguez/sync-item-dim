@@ -158,6 +158,13 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     new_shipment.hash = shipment_hash
                     new_shipment.created_at = datetime.utcnow().replace(second=0, microsecond=0)
 
+                    # Adds new quote_id and quote_note to Shipments and Templates
+                    if new_shipment.quote_id is None and new_shipment.quote_note is not None:
+                        s = new_shipment.quote_note
+                        match = re.search(r"QUOTE#\s*(.*?)\s*-", s)
+                        if match:
+                            new_shipment.quote_id = match.group(1)
+
                     # Saves item_list per shipment
                     for item in list_of_items:
                         new_sa_item: SAItems = SAItems(**item)

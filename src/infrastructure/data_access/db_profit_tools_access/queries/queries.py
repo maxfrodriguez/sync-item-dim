@@ -146,6 +146,8 @@ SELECT DISTINCT
   eqinfoH.eq_type AS eq_h_info_eq_type,
   eqinfoH.eq_ref AS chassis_id,
   ds.custom9 AS st_custom_9,
+  ds.custom1 AS quote_id,
+  di_hcap.Note AS quote_note,
   md.mod_datetime as mod_created_pt_dt
 FROM [DBA].[disp_ship] ds
 INNER JOIN [DBA].[companies] c1
@@ -165,6 +167,9 @@ LEFT JOIN [DBA].[equip2_shiplinks] eqpC
 INNER JOIN [DBA].[equip2_info] eqinfoC
   ON eqinfoC.eq_id = eqpC.eq_id
   AND eqinfoC.eq_type = 'C'
+LEFT JOIN [DBA].[disp_items] di_hcap 
+  ON ds.ds_id = di_hcap.di_shipment_id 
+  AND di_hcap.AmountType = 1
 LEFT JOIN [DBA].[equip2_leaseInfo_EP] eqliC
     ON eqinfoC.eq_id = eqliC.oe_id
 LEFT JOIN [DBA].[EquipmentLeaseType] eqlitC

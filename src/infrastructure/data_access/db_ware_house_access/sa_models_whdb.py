@@ -103,6 +103,8 @@ class SAShipment(Base, SAModelBaseWareHouse):
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
     mod_created_pt_dt = Column(DateTime(timezone=True), nullable=True)
+    quote_id = Column(String, nullable=True)
+    quote_note = Column(String, nullable=True)
 
     @classmethod
     def find_by_hash(cls, db_session: Session, hash: str) -> int:
@@ -176,6 +178,8 @@ class SATemplate(Base):
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
     mod_created_pt_dt = Column(DateTime(timezone=True), nullable=True)
+    quote_id = Column(String, nullable=True)
+    quote_note = Column(String, nullable=True)
 
 class SAEvent(Base, SAModelBaseWareHouse):
     __tablename__ = "events"

@@ -17,25 +17,12 @@ SA_CONSTRAINT_NAMING_CONVENTION: Final[Dict[str, str]] = {
 
 
 class SAModelBaseWareHouse:
-    # id = Column(
-    #     UNIQUEIDENTIFIER,
-    #     primary_key=True,
-    #     default=uuid4,
-    #     unique=True,
-    #     nullable=False,
-    # )
     id = Column(
         BigInteger,
         primary_key=True,
         unique=True,
         nullable=False,
     )
-    
-    # created_at = Column(
-    #     DateTime(timezone=True),
-    #     default=datetime.now(tz=utc).replace(second=0, microsecond=0),
-    #     nullable=False,
-    # )
 
     @classmethod
     def find(cls, db_session: Session, id: str) -> Self | None:

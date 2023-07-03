@@ -1,6 +1,7 @@
 import re
 import logging
 from datetime import datetime
+import pandas as pd
 from typing import Any, Dict, Generator, List, Literal
 
 from src.domain.entities.shipment import Event, Shipment
@@ -15,6 +16,8 @@ from src.infrastructure.data_access.db_profit_tools_access.queries.queries impor
     ITEMS_QUERY,
     MODLOG_QUERY,
     NEXT_ID_WH,
+    SHIPMENT_EQUIPMENT_SPLITTED_QUERY,
+    SHIPMENT_SPLITTED_QUERY,
     WAREHOUSE_SHIPMENTS,
 )
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAItems, SALoaderLog, SAShipment, SATemplate
@@ -22,6 +25,7 @@ from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client im
 from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
 from src.infrastructure.repository.fact_customer_kpi_impl import FactCustomerKPIImpl
 from src.infrastructure.repository.street_turn_impl import StreetTurnImpl
+from src.infrastructure.cross_cutting.data_types import dtypes
 
 
 class ShipmentImpl(ShipmentRepositoryABC):
@@ -91,9 +95,20 @@ class ShipmentImpl(ShipmentRepositoryABC):
         items_list: List[SAItems] = []
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
+        # async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
+        #     rows: Generator[Record, None, None] = sybase_client.SELECT(
+        #         COMPLETE_SHIPMENT_QUERY.format(ids), result_type=dict
+        #     )
+        #     rows_items: Generator[Record, None, None] = sybase_client.SELECT(
+        #         ITEMS_QUERY.format(ids), result_type=dict
+        #     )
+
         async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
             rows: Generator[Record, None, None] = sybase_client.SELECT(
-                COMPLETE_SHIPMENT_QUERY.format(ids), result_type=dict
+                SHIPMENT_SPLITTED_QUERY.format(ids), result_type=dict
+            )
+            rows_equipment: Generator[Record, None, None] = sybase_client.SELECT(
+                SHIPMENT_EQUIPMENT_SPLITTED_QUERY.format(ids), result_type=dict
             )
             rows_items: Generator[Record, None, None] = sybase_client.SELECT(
                 ITEMS_QUERY.format(ids), result_type=dict
@@ -101,8 +116,24 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
         # if rows/rows_items is empty, raise the exeption to close the process because we need to loggin just in application layer
         assert rows, f"did't not found shipments to sync at {datetime.now()}"
+        # assert rows_equipment, f"did't not found equipment to sync at {datetime.now()}"
         assert rows_items, f"didn't found items to sync at {datetime.now()}"
 
+        # Unifies the shipment and equipment rows using pandas.
+        merged_list = []
+
+        for row in rows:
+            ds_id = row['ds_id']
+            matching_rows = [eq_row for eq_row in rows_equipment if eq_row['ds_id'] == ds_id]
+
+            if matching_rows:
+                for matching_row in matching_rows:
+                    merged_row = {**row, **matching_row}  # Merge the dictionaries
+                    merged_list.append(merged_row)
+            else:
+                merged_list.append(row)  # Agregar la fila original sin modificaciones
+
+        rows = merged_list
         # declare a set list to store the RateConfShipment objects
         unique_shipment_ids = set()
         # create a list of rateconf_shipment objects
@@ -151,6 +182,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     eg_shipments.append(filtered_shipment)
 
                     # Create a new shipment object with the next id
+                    del row_query['RateCodename']
                     new_shipment: SAShipment = SAShipment(**row_query)
                     template_id = re.sub('[^0-9]', '', new_shipment.template_id)
                     new_shipment.template_id = None if not template_id else int(template_id) 
@@ -178,6 +210,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     if new_shipment.ds_status != 'A':
                         bulk_shipments.append(new_shipment)
                     else:
+                        del row_query['division']
                         new_sa_template = SATemplate(**row_query)
                         template_id = re.sub('[^0-9]', '', new_sa_template.template_id)
                         new_sa_template.template_id = None if not template_id else int(template_id) 
@@ -194,7 +227,6 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 else:
                     logging.warning(f"Did't find the shipment: {shipment_id}")
 
-        # Insert massive information
         await self.bulk_save_shipment_template_information(bulk_shipments, bulk_templates, items_list)
 
         # Emit information to EG Street Turns

@@ -16,6 +16,10 @@ from src.infrastructure.repository.recalculate_movements_impl import Recalculate
 
 
 class EventImpl(EventRepositoryABC):
+    async def bulk_save_events(self, bulk_of_events: List[SAEvent]) -> None:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
+            wh_client.bulk_copy(bulk_of_events)
+
     async def save_and_sync_events(self, list_of_shipments: List[Shipment]):
         events_hash_list = {}
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
@@ -75,7 +79,6 @@ class EventImpl(EventRepositoryABC):
                         current_shipment.events.append(current_event)
                         continue
 
-
                     row_query.pop("ds_id", None)
                     new_event: SAEvent = SAEvent(**row_query)
                     new_event.shipment_id = current_shipment.id
@@ -92,8 +95,5 @@ class EventImpl(EventRepositoryABC):
                     next_id += 1
                 else:
                     logging.warning(f"Did't find the shipment: {event_id}")
-
-        # bulk copy de bulk_shipments
             
-        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
-            wh_client.bulk_copy(bulk_events)
+        await self.bulk_save_events(bulk_events)

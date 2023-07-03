@@ -52,6 +52,7 @@ class SAShipment(Base, SAModelBaseWareHouse):
     ds_status = Column(String, nullable=True)
     template_id = Column(Integer, nullable=True)
     ds_status_text = Column(String, nullable=True)
+    division = Column(String, nullable=True)
     MasterBL = Column(String, nullable=True)
     ds_hazmat = Column(String, nullable=True)
     ds_expedite = Column(String, nullable=True)

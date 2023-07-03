@@ -17,6 +17,10 @@ from src.infrastructure.repository.recalculate_movements_impl import Recalculate
 
 
 class StopsImpl(StopsRepositoryABC):
+    async def bulk_save_stops(self, bulk_of_stops: List[SAStops]) -> None:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
+            wh_client.bulk_copy(bulk_of_stops)
+
     async def get_stop_by_id(self, events: List[int]):
         ids = ", ".join(f"'{event_id}'" for event_id in events)
         async with Tower121DdConnector(stage=ENVIRONMENT.PRD) as tower_121_client:
@@ -113,5 +117,4 @@ class StopsImpl(StopsRepositoryABC):
                     logging.warning(f"Did't find the shipment: {unique_key_event}")
 
         # Bulk insert Stops.
-        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
-            wh_client.bulk_copy(bulk_stops)
+        await self.bulk_save_stops(bulk_stops)

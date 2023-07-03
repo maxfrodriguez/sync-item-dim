@@ -297,6 +297,61 @@ WHERE
 ORDER BY ds.ds_id
 """
 
+SHIPMENTS_CUSTOM_FIELDS_QUERY : Final [str] = """
+SELECT DISTINCT
+    ds.ds_id,
+    ds.ds_status,
+    ds.custom1 AS ds_custom_1,
+    ds.custom2 AS ds_custom_2,
+    ds.custom3 AS ds_custom_3,
+    ds.custom4 AS ds_custom_4,
+    ds.custom5 AS ds_custom_5,
+    ds.custom6 AS ds_custom_6,
+    ds.custom7 AS ds_custom_7,
+    ds.custom8 AS ds_custom_8,
+    ds.custom9 AS ds_custom_9,
+    ds.custom10 AS ds_custom_10,
+    c1.custom1 AS client_custom_1,
+    c1.custom2 AS client_custom_2,
+    c1.custom3 AS client_custom_3,
+    c1.custom4 AS client_custom_4,
+    c1.custom5 AS client_custom_5,
+    c1.custom6 AS client_custom_6,
+    c1.custom7 AS client_custom_7,
+    c1.custom8 AS client_custom_8,
+    c1.custom9 AS client_custom_9,
+    c1.custom10 AS client_custom_10,
+    org.custom1 AS origin_custom_1,
+    org.custom2 AS origin_custom_2,
+    org.custom3 AS origin_custom_3,
+    org.custom4 AS origin_custom_4,
+    org.custom5 AS origin_custom_5,
+    org.custom6 AS origin_custom_6,
+    org.custom7 AS origin_custom_7,
+    org.custom8 AS origin_custom_8,
+    org.custom9 AS origin_custom_9,
+    org.custom10 AS origin_custom_10,
+    des.custom1 AS destination_custom_1,
+    des.custom2 AS destination_custom_2,
+    des.custom3 AS destination_custom_3,
+    des.custom4 AS destination_custom_4,
+    des.custom5 AS destination_custom_5,
+    des.custom6 AS destination_custom_6,
+    des.custom7 AS destination_custom_7,
+    des.custom8 AS destination_custom_8,
+    des.custom9 AS destination_custom_9,
+    des.custom10 AS destination_custom_10
+FROM [DBA].[disp_ship] ds
+LEFT JOIN [DBA].[companies] c1
+    ON c1.co_id = ds.ds_billto_id
+LEFT JOIN [DBA].[companies] org
+    ON org.co_id = ds.ds_origin_id
+LEFT JOIN [DBA].[companies] des
+    ON des.co_id = ds.ds_findest_id
+
+WHERE ds.ds_id IN ({})
+"""
+
 STOPS_QUERY: Final = """
 SELECT
   events_external_references.external_id AS pt_event_id,

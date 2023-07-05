@@ -333,13 +333,13 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 new_sa_custom_fields: SACustomFields = SACustomFields(**custom_field)
                 bulk_of_custom_fields.append(new_sa_custom_fields)
 
-        await self.bulk_save(bulk_shipments, bulk_templates, items_list, bulk_of_custom_fields)
+        # await self.bulk_save(bulk_shipments, bulk_templates, items_list, bulk_of_custom_fields)
 
         # Emit information to EG Street Turns
-        await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
+        # await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
 
         # Emit information to EG Customers KPIs
-        await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
+        # await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
 
         # Remove templates from Shipments
         list_of_shipments = self.remove_templates_from_shipments(

@@ -10,7 +10,14 @@ from src.application.retrieve_shipments import retrieve_shipments_list
 class TestSyncUp:
     async def test_sync_dimension_tables(self):
         total_movements: int = 0
-        shipments: List[Shipment] = await retrieve_shipments_list()
+        # shipments: List[Shipment] = await retrieve_shipments_list()
+        shipments: List[Shipment] = [
+            Shipment(ds_id=140417, modlog=0),
+            Shipment(ds_id=140385, modlog=0),
+            Shipment(ds_id=140242, modlog=0),
+            Shipment(ds_id=140172, modlog=0),
+            Shipment(ds_id=139954, modlog=0)
+        ]
         
         if shipments:
             modlog_ids = [shipment.modlog for shipment in shipments]

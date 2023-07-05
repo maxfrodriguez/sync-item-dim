@@ -9,7 +9,7 @@ from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import COMPLETE_EVENT_QUERY, NEXT_ID_WH, WAREHOUSE_EVENTS
-from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAEvent
+from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAEvent, SAShipmentEvent
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
 from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
 from src.infrastructure.repository.recalculate_movements_impl import RecalculateMovementsImpl
@@ -35,8 +35,8 @@ class EventImpl(EventRepositoryABC):
         # declare a set list to store the RateConfShipment objects
         unique_events_ids = set()
         # create a list of rateconf_shipment objects
-        # bulk_shipments : List[SAShipment] = []
         bulk_events: List[SAEvent] = []
+        bulk_of_ship_events : List[SAEvent] = []
 
         event_ids = ", ".join(f"'{event['de_id']}'" for event in rows)
 
@@ -54,7 +54,7 @@ class EventImpl(EventRepositoryABC):
 
         # read shipments_query one by one
         for row_query in rows:
-            # create a KeyRateConfShipment object to store the data from the shipment
+           
             event_hash = deep_hash(row_query)
             shipment_id = row_query["ds_id"]
             event_id = row_query["de_id"]
@@ -77,6 +77,8 @@ class EventImpl(EventRepositoryABC):
                         current_event = Event(**row_query)
                         current_event.id = int(event_id_list[event_id])
                         current_shipment.events.append(current_event)
+                        # WH existing event, adds logic to create relation in Shipment_Event
+
                         continue
 
                     row_query.pop("ds_id", None)
@@ -93,6 +95,10 @@ class EventImpl(EventRepositoryABC):
 
                     bulk_events.append(new_event)
                     next_id += 1
+
+                    # WH non existing Event
+                    new_sa_ship_ev: SAShipmentEvent = SAShipmentEvent()
+
                 else:
                     logging.warning(f"Did't find the shipment: {event_id}")
             

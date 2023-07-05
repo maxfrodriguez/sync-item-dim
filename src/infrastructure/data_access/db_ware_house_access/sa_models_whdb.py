@@ -346,3 +346,12 @@ class SACustomFields(Base, SAModelBaseWareHouse):
     destination_custom_10 = Column(String, nullable=True)
     sk_id_shipment_fk = Column(BigInteger, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class SAShipmentEvent(Base, SAModelBaseWareHouse):
+    __tablename__ = "shipments_events"
+
+    sk_shipment_id = Column(BigInteger, nullable= False)
+    sk_event_id = Column(BigInteger, nullable=False)
+    sequence_event_id = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)

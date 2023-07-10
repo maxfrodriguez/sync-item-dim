@@ -51,7 +51,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
             wh_client.bulk_copy(bulk_of_shipments)
             wh_client.bulk_copy(bulk_of_templates)
             wh_client.bulk_copy(bulk_of_items)
-            wh_client.bulk_copy(bulk_of_custom_fields)
+            # wh_client.bulk_copy(bulk_of_custom_fields)
 
     async def emit_to_eg_street_turn(self, eg_shipments: List[Shipment]):
         if len(eg_shipments) > 0:
@@ -251,7 +251,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
                         shipment_hash
                         and shipment_id in shipments_hash_list
                         and shipments_hash_list[shipment_id]
-                    ) and str(shipment_hash) == shipments_hash_list[shipment_id]:
+                     ): # and str(shipment_hash) == shipments_hash_list[shipment_id]:
                         filtered_shipment.id = int(shipment_id_list[shipment_id])
                         continue
 
@@ -265,6 +265,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     new_shipment.template_id = (
                         None if not template_id else int(template_id)
                     )
+                    # new_shipment.id = next_id
                     new_shipment.id = next_id
                     new_shipment.hash = shipment_hash
                     new_shipment.created_at = datetime.utcnow().replace(
@@ -333,13 +334,13 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 new_sa_custom_fields: SACustomFields = SACustomFields(**custom_field)
                 bulk_of_custom_fields.append(new_sa_custom_fields)
 
-        # await self.bulk_save(bulk_shipments, bulk_templates, items_list, bulk_of_custom_fields)
+        await self.bulk_save(bulk_shipments, bulk_templates, items_list, bulk_of_custom_fields)
 
         # Emit information to EG Street Turns
-        # await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
+        await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
 
         # Emit information to EG Customers KPIs
-        # await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
+        await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
 
         # Remove templates from Shipments
         list_of_shipments = self.remove_templates_from_shipments(

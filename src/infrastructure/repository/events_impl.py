@@ -19,6 +19,10 @@ class EventImpl(EventRepositoryABC):
     async def bulk_save_events(self, bulk_of_events: List[SAEvent]) -> None:
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_of_events)
+    
+    async def bulk_save_event_shipments(self, bulk_of_event_ships: List[SAShipmentEvent]) -> None:
+        async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
+            wh_client.bulk_copy(bulk_of_event_ships)
 
     async def save_and_sync_events(self, list_of_shipments: List[Shipment]):
         events_hash_list = {}
@@ -42,6 +46,7 @@ class EventImpl(EventRepositoryABC):
 
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("events"))
+            row_event_ship_id = wh_client.execute_select(NEXT_ID_WH.format("shipments_events"))
             wh_events: List[Dict[str, Any]] = wh_client.execute_select(WAREHOUSE_EVENTS.format(event_ids))
         
         if wh_events:
@@ -49,8 +54,11 @@ class EventImpl(EventRepositoryABC):
             event_id_list = {wh_event['de_id']: wh_event['id'] for wh_event in wh_events}
 
         assert row_next_id, f"Did't not found next Id for ''Events WH'' at {datetime.now()}"
+        assert row_event_ship_id, f"Did't not found next Id for ''Shipments_Events WH'' at {datetime.now()}"
 
         next_id = row_next_id[0]["NextId"] if row_next_id[0]["NextId"] is not None else 0
+        event_ship_next_id = row_event_ship_id[0]["NextId"] if row_event_ship_id[0]["NextId"] is not None else 0
+
 
         # read shipments_query one by one
         for row_query in rows:
@@ -78,7 +86,15 @@ class EventImpl(EventRepositoryABC):
                         current_event.id = int(event_id_list[event_id])
                         current_shipment.events.append(current_event)
                         # WH existing event, adds logic to create relation in Shipment_Event
-
+                        sa_event_ship: SAShipmentEvent = SAShipmentEvent(
+                            sk_shipment_id = current_shipment.id,
+                            sk_event_id = current_event.id,
+                            sequence_event_id = current_event.de_ship_seq,
+                            created_at = datetime.utcnow().replace(second=0, microsecond=0),
+                            id = event_ship_next_id
+                        )
+                        bulk_of_ship_events.append(sa_event_ship)
+                        event_ship_next_id += 1
                         continue
 
                     row_query.pop("ds_id", None)
@@ -97,9 +113,17 @@ class EventImpl(EventRepositoryABC):
                     next_id += 1
 
                     # WH non existing Event
-                    new_sa_ship_ev: SAShipmentEvent = SAShipmentEvent()
-
+                    sa_event_ship: SAShipmentEvent = SAShipmentEvent(
+                         sk_shipment_id = current_shipment.id,
+                        sk_event_id = new_event.id,
+                        sequence_event_id = new_event.de_ship_seq,
+                        created_at = datetime.utcnow().replace(second=0, microsecond=0),
+                        id = event_ship_next_id
+                    )
+                    bulk_of_ship_events.append(sa_event_ship)
+                    event_ship_next_id += 1
                 else:
                     logging.warning(f"Did't find the shipment: {event_id}")
             
         await self.bulk_save_events(bulk_events)
+        await self.bulk_save_event_shipments(bulk_of_ship_events)

@@ -51,7 +51,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
             wh_client.bulk_copy(bulk_of_shipments)
             wh_client.bulk_copy(bulk_of_templates)
             wh_client.bulk_copy(bulk_of_items)
-            # wh_client.bulk_copy(bulk_of_custom_fields)
+            wh_client.bulk_copy(bulk_of_custom_fields)
 
     async def emit_to_eg_street_turn(self, eg_shipments: List[Shipment]):
         if len(eg_shipments) > 0:
@@ -253,6 +253,17 @@ class ShipmentImpl(ShipmentRepositoryABC):
                         and shipments_hash_list[shipment_id]
                      ): # and str(shipment_hash) == shipments_hash_list[shipment_id]:
                         filtered_shipment.id = int(shipment_id_list[shipment_id])
+                        # For existing shipments:
+                        # if custom_fields:
+                        #     custom_fields['id'] = next_id_custom_fields
+                        #     custom_fields['sk_id_shipment_fk'] = filtered_shipment.id
+                        #     custom_fields['created_at'] = datetime.utcnow().replace(
+                        #         second=0, microsecond=0
+                        #     )
+
+                        #     # Adds the custom fields to the list
+                        #     custom_fields_list.append(custom_fields)
+                        #     next_id_custom_fields += 1
                         continue
 
                     # Add shipment changed
@@ -273,15 +284,16 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     )
 
                     # Modifies the custom fields object to link it to the new shipment
-                    custom_fields['id'] = next_id_custom_fields
-                    custom_fields['sk_id_shipment_fk'] = new_shipment.id
-                    custom_fields['created_at'] = datetime.utcnow().replace(
-                        second=0, microsecond=0
-                    )
+                    if custom_fields:
+                        custom_fields['id'] = next_id_custom_fields
+                        custom_fields['sk_id_shipment_fk'] = new_shipment.id
+                        custom_fields['created_at'] = datetime.utcnow().replace(
+                            second=0, microsecond=0
+                        )
 
-                    # Adds the custom fields to the list
-                    custom_fields_list.append(custom_fields)
-                    next_id_custom_fields += 1
+                        # Adds the custom fields to the list
+                        custom_fields_list.append(custom_fields)
+                        next_id_custom_fields += 1
 
                     # Adds new quote_id and quote_note to Shipments and Templates
                     if (

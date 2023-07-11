@@ -346,6 +346,7 @@ class SACustomFields(Base, SAModelBaseWareHouse):
     destination_custom_10 = Column(String, nullable=True)
     sk_id_shipment_fk = Column(BigInteger, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False)
+    carrier_pay = Column(Float, nullable=True)
 
 
 class SAShipmentEvent(Base, SAModelBaseWareHouse):

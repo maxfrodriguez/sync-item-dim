@@ -149,9 +149,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
         # if rows/rows_items is empty, raise the exeption to close the process because we need to loggin just in application layer
         assert rows, f"did't not found shipments to sync at {datetime.now()}"
         assert rows_items, f"didn't found items to sync at {datetime.now()}"
-        assert (
-            rows_custom_fields
-        ), f"didn't found custom fields to sync at {datetime.now()}"
+        # assert (
+        #     rows_custom_fields
+        # ), f"didn't found custom fields to sync at {datetime.now()}"
 
         # Unifies the shipment and equipment rows using pandas.
         merged_list = []
@@ -251,7 +251,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
                         shipment_hash
                         and shipment_id in shipments_hash_list
                         and shipments_hash_list[shipment_id]
-                     ): # and str(shipment_hash) == shipments_hash_list[shipment_id]:
+                     )  and str(shipment_hash) == shipments_hash_list[shipment_id]:
                         filtered_shipment.id = int(shipment_id_list[shipment_id])
                         # For existing shipments:
                         # if custom_fields:

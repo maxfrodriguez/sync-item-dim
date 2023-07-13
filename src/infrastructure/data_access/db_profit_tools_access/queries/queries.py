@@ -6,11 +6,14 @@ SELECT DISTINCT
   ds.ds_status,
   MAX(md_ds.mod_id) AS r_mod_id
 FROM [DBA].[modlog_ship] md_ds
+INNER JOIN [DBA].[modlog] md 
+  ON  md.mod_id = md_ds.mod_id
 LEFT JOIN [DBA].[disp_ship] ds
   ON ds.ds_id = md_ds.ds_id
 GROUP BY ds.ds_id,
          ds.ds_status
 HAVING MAX(md_ds.mod_id) > {}
+OR (ds.ds_status = 'K' AND MAX(md.mod_datetime) > '2023-07-01 00:00:00')
 ORDER BY ds.ds_status DESC
 """
 
@@ -436,7 +439,7 @@ LEFT JOIN [DBA].[modlog] md
   ON md.mod_id = md_ds.mod_id
 --WHERE md.mod_datetime BETWEEN '2023-06-28 00:00:00' AND '2023-06-30 23:59:59'
 AND mod_type = 'C'
-WHERE ds.ds_id IN (128818, 132601, 132881, 133769, 140818, 140889, 140891, 140905, 140906, 140919, 140929, 140945, 140953, 140964, 140965, 140966, 140967, 140968, 140970, 140971, 140972, 140973, 140974, 140975, 140976, 140988, 140990, 141009, 141010, 141011)
+WHERE ds.ds_id IN (140646)
 -- AND ds.ds_status NOT IN ('A')
 GROUP BY ds.ds_id,
          ds.ds_status

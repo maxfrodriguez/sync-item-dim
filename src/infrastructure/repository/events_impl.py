@@ -16,6 +16,23 @@ from src.infrastructure.repository.recalculate_movements_impl import Recalculate
 
 
 class EventImpl(EventRepositoryABC):
+
+    async def validate_event_dates(self, rows: Generator) -> Generator[Dict | Record, None, None]:
+        for row in rows:
+            for field in ["appointment", "arrival", "departure", "earliest", "latest"]:
+                dt = row[f"de_{field}_dt"]
+                tm = row[f"de_{field}_tm"]
+                
+                if dt and tm:
+                    row[field] = dt + ' ' + tm
+                else:
+                    row[field] = dt + ' 00:00:00.000' if dt else None
+                
+                del row[f"de_{field}_dt"]
+                del row[f"de_{field}_tm"]
+
+        return rows 
+
     async def bulk_save_events(self, bulk_of_events: List[SAEvent]) -> None:
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_of_events)
@@ -43,6 +60,9 @@ class EventImpl(EventRepositoryABC):
         bulk_of_ship_events : List[SAEvent] = []
 
         event_ids = ", ".join(f"'{event['de_id']}'" for event in rows)
+
+        # New logic to CAST Dates in Events
+        rows = await self.validate_event_dates(rows=rows)
 
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("events"))
@@ -81,7 +101,7 @@ class EventImpl(EventRepositoryABC):
                 if current_shipment:
                     # Validate event hash
                     if (event_hash and event_id in events_hash_list and events_hash_list[event_id]) and str(event_hash) == events_hash_list[event_id]:
-                        row_query.pop("ds_id", None)
+                        row_query.pop("ds_id", None)            
                         current_event = Event(**row_query)
                         current_event.id = int(event_id_list[event_id])
                         current_shipment.events.append(current_event)
@@ -98,6 +118,7 @@ class EventImpl(EventRepositoryABC):
                         continue
 
                     row_query.pop("ds_id", None)
+                    # New logic for appointment/arrival date
                     new_event: SAEvent = SAEvent(**row_query)
                     new_event.shipment_id = current_shipment.id
                     new_event.id = next_id

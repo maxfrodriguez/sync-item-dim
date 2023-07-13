@@ -44,13 +44,18 @@ COMPLETE_EVENT_QUERY: Final[
     de.de_ship_seq,
     de.de_conf,
     de.Routable AS de_routable,
-    CAST(de.de_apptdate AS datetime) + CAST(de.de_appttime AS datetime) AS de_appointment,
-    CAST(de.de_arrdate AS datetime) + CAST(de.de_arrtime AS datetime) AS de_arrival,
-    CAST(CAST(CASE WHEN de_apptdate IS NULL THEN de_arrdate
+    de.de_apptdate AS de_appointment_dt,
+    de.de_appttime AS de_appointment_tm,
+    de.de_arrdate AS de_arrival_dt,
+    de.de_arrtime AS de_arrival_tm,
+    CASE WHEN de_apptdate IS NULL THEN de_arrdate
     ELSE de_apptdate
-    END AS DATETIME) + CAST(de_deptime AS DATETIME) AS DATETIME) AS de_departure,
-    CAST(de.earliestDate AS datetime) + CAST(de.earliestTime AS datetime) AS de_earliest,
-    CAST(de.latestDate AS datetime) + CAST(de.latestTime AS datetime) AS de_latest,
+    END AS de_departure_dt,
+    de_deptime AS de_departure_tm,
+    de.earliestDate AS de_earliest_dt,
+    de.earliestTime AS de_earliest_tm,
+    de.latestDate AS de_latest_dt,
+    de.latestTime AS de_latest_tm,
     (em_fn + ' ' + em_ln) AS driver_name
 FROM [DBA].[disp_ship] ds
 INNER JOIN [DBA].[disp_events] de

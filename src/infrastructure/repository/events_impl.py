@@ -16,13 +16,22 @@ from src.infrastructure.repository.recalculate_movements_impl import Recalculate
 
 
 class EventImpl(EventRepositoryABC):
+
     async def validate_event_dates(self, rows: Generator) -> Generator[Dict | Record, None, None]:
         for row in rows:
-            if row["de_appointment_dt"] and row["de_appointment_tm"]:
-                pass
-            elif row["de_arrival_dt"] and row["de_arrival_tm"]:
-                pass
-        pass     
+            for field in ["appointment", "arrival", "departure", "earliest", "latest"]:
+                dt = row[f"de_{field}_dt"]
+                tm = row[f"de_{field}_tm"]
+                
+                if dt and tm:
+                    row[field] = dt + ' ' + tm
+                else:
+                    row[field] = dt + ' 00:00:00.000' if dt else None
+                
+                del row[f"de_{field}_dt"]
+                del row[f"de_{field}_tm"]
+
+        return rows 
 
     async def bulk_save_events(self, bulk_of_events: List[SAEvent]) -> None:
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
@@ -51,6 +60,9 @@ class EventImpl(EventRepositoryABC):
         bulk_of_ship_events : List[SAEvent] = []
 
         event_ids = ", ".join(f"'{event['de_id']}'" for event in rows)
+
+        # New logic to CAST Dates in Events
+        rows = await self.validate_event_dates(rows=rows)
 
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("events"))

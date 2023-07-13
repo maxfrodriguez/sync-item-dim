@@ -1,6 +1,6 @@
 import re
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 from typing import Any, Dict, Generator, List, Literal
 
@@ -97,6 +97,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
     ) -> List[Shipment] | None:
         shipments: List[Shipment] = []
         latest_sa_mod_log: SALoaderLog | None = None
+        mod_datetime: datetime = datetime.utcnow() - timedelta(days=15)
+        mod_datetime = mod_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
+
         if last_modlog is None:
             async with get_sa_session() as session:
                 latest_sa_mod_log = SALoaderLog.get_highest_version(db_session=session)
@@ -105,7 +108,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
         async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
             result: Generator[Record, None, None] = sybase_client.SELECT(
-                query_to_execute.format(latest_sa_mod_log.mod_highest_version)
+                query_to_execute.format(latest_sa_mod_log.mod_highest_version, mod_datetime)
             )
 
             if result:

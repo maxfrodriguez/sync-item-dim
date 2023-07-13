@@ -12,8 +12,8 @@ LEFT JOIN [DBA].[disp_ship] ds
   ON ds.ds_id = md_ds.ds_id
 GROUP BY ds.ds_id,
          ds.ds_status
-HAVING MAX(md_ds.mod_id) > {}
-OR (ds.ds_status = 'K' AND MAX(md.mod_datetime) > '2023-07-01 00:00:00')
+HAVING MAX(md_ds.mod_id) > {0}
+OR (ds.ds_status = 'K' AND MAX(md.mod_datetime) > '{1}')
 ORDER BY ds.ds_status DESC
 """
 

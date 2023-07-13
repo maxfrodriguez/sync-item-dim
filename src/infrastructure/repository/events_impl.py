@@ -24,9 +24,9 @@ class EventImpl(EventRepositoryABC):
                 tm = row[f"de_{field}_tm"]
                 
                 if dt and tm:
-                    row[field] = dt + ' ' + tm
+                    row[f'de_{field}'] = dt + ' ' + tm
                 else:
-                    row[field] = dt + ' 00:00:00.000' if dt else None
+                    row[f'de_{field}'] = dt + ' 00:00:00.000' if dt else None
                 
                 del row[f"de_{field}_dt"]
                 del row[f"de_{field}_tm"]

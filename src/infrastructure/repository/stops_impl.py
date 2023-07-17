@@ -96,6 +96,17 @@ class StopsImpl(StopsRepositoryABC):
                 if current_event:
                     # Validate stop hash
                     if (stop_hash and unique_key_event in stops_hash_list and stops_hash_list[unique_key_event]) and str(stop_hash) == stops_hash_list[unique_key_event]:
+                        if current_shipment.ds_status == 'W' and row_query['arrival_dt'] is not None and row_query['departure_dt'] is not None:
+                            new_stop: SAStops = SAStops(**row_query)
+                            new_stop.event_id = current_event.id
+                            new_stop.id = next_id
+                            new_stop.hash = stop_hash
+                            new_stop.created_at = datetime.utcnow().replace(second=0, microsecond=0)
+                            current_stop = Stop(**row_query)
+                            current_stop.id = next_id
+                            current_event.stop = current_stop
+                            bulk_stops.append(new_stop)
+                            next_id += 1
                         continue
 
                     # row_query.pop("ds_id", None)

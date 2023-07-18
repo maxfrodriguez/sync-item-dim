@@ -258,13 +258,13 @@ SELECT DISTINCT
         WHEN 'W' THEN 'Billed'
         ELSE 'Unknown'
     END AS ds_status_text
-    , (CASE
-      WHEN ds.ds_ship_type = 2201 THEN 'SNE'
-      WHEN ds.ds_ship_type = 2205 THEN 'LBS'
-      WHEN ds.ds_ship_type = 2206 THEN 'DBS'
-          WHEN ds.ds_ship_type = 2208 THEN 'DBS-SAP'
-      ELSE 'NOT FOUND' END
-	  ) AS division
+	, (CASE
+		WHEN ds.ds_ship_type = 2201 THEN 'SNE'
+		WHEN ds.ds_ship_type = 2205 THEN 'LBS'
+		WHEN ds.ds_ship_type = 2206 THEN 'DBS'
+        WHEN ds.ds_ship_type = 2208 THEN 'DBS-SAP'
+		ELSE 'NOT FOUND' END
+	) AS Division
     , ds.MasterBL
     , ds.ds_hazmat
     , ds.ds_expedite
@@ -299,6 +299,10 @@ SELECT DISTINCT
         WHEN ds.movecode = 'E' THEN ds.pickupbytime
         ELSE ds.delbytime
     END) AS del_pk_time
+	, (CASE
+        WHEN ds.movecode = 'E' THEN REPLACE(ds.pickupbyby, ':', '')
+        ELSE REPLACE(ds.delbyby, ':', '')
+    END) AS del_appt_time
     , ds.ds_origin_id
     , org.co_name AS org_name
 	, org.co_city as org_city
@@ -315,7 +319,7 @@ SELECT DISTINCT
     END) AS TmpType
 	, ds.custom9 as st_custom_9
 	, ds.custom1 AS quote_id
-    , di_hcap.Note AS quote_note
+    , di_hcap.Note
     , di_hcap.RateCodename
 	, md.mod_datetime as mod_created_pt_dt
 FROM [DBA].[disp_ship] ds
@@ -326,11 +330,13 @@ FROM [DBA].[disp_ship] ds
 	LEFT JOIN [DBA].current_shipments cs ON cs.cs_id = ds.ds_id
 	LEFT JOIN [DBA].[modlog_ship] md_ds on ds.ds_id = md_ds.ds_id
 	LEFT JOIN [DBA].[modlog] md on md.mod_id = md_ds.mod_id
+
 WHERE 
     ds.ds_id IN ({})
     and
     md_ds.mod_type = 'C'
-ORDER BY ds.ds_id, di_hcap.RateCodename DESC
+ORDER BY ds.ds_id
+	, di_hcap.RateCodename
 """ 
 
 SHIPMENT_EQUIPMENT_SPLITTED_QUERY: Final [str] = """

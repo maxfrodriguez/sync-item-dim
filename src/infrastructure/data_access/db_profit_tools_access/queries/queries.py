@@ -319,7 +319,7 @@ SELECT DISTINCT
     END) AS TmpType
 	, ds.custom9 as st_custom_9
 	, ds.custom1 AS quote_id
-    , di_hcap.Note
+    , di_hcap.Note AS quote_note
     , di_hcap.RateCodename
 	, md.mod_datetime as mod_created_pt_dt
 FROM [DBA].[disp_ship] ds

@@ -264,7 +264,7 @@ SELECT DISTINCT
 		WHEN ds.ds_ship_type = 2206 THEN 'DBS'
         WHEN ds.ds_ship_type = 2208 THEN 'DBS-SAP'
 		ELSE 'NOT FOUND' END
-	) AS Division
+	) AS division
     , ds.MasterBL
     , ds.ds_hazmat
     , ds.ds_expedite
@@ -497,7 +497,7 @@ LEFT JOIN [DBA].[modlog] md
   ON md.mod_id = md_ds.mod_id
 --WHERE md.mod_datetime BETWEEN '2023-06-28 00:00:00' AND '2023-06-30 23:59:59'
 AND mod_type = 'C'
-WHERE ds.ds_id IN ()
+WHERE ds.ds_id IN (140446, 139942)
 -- AND ds.ds_status NOT IN ('A')
 GROUP BY ds.ds_id,
          ds.ds_status

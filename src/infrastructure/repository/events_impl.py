@@ -127,7 +127,6 @@ class EventImpl(EventRepositoryABC):
                             id = event_ship_next_id
                         )
                         bulk_of_ship_events.append(sa_event_ship)
-                        shipments_id_list.append(current_shipment.ds_id)
                         event_ship_next_id += 1
                         continue
 

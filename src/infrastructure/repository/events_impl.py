@@ -7,6 +7,7 @@ from src.domain.entities.shipment import Shipment
 from src.domain.repository.events_abc import EventRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
+from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import COMPLETE_EVENT_QUERY, NEXT_ID_WH, WAREHOUSE_EVENTS
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAEvent, SAShipmentEvent
@@ -16,6 +17,17 @@ from src.infrastructure.repository.recalculate_movements_impl import Recalculate
 
 
 class EventImpl(EventRepositoryABC):
+    async def send_list_sb(self, id_list: List[int]) -> None:
+        id_set = set(id_list)
+        for unique_id in id_set:
+            await self.send_sb_message(unique_id)
+
+    async def send_sb_message(self, id: int, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
+        async with ServiceBusImpl(stage=stage) as servicebus_client:
+            try:
+                await servicebus_client.send_message(data=id, queue_name=servicebus_client.queue_name)
+            except Exception as e:
+                logging.exception(f"An exception occurred while sending the message: {str(e)}")
 
     async def validate_event_dates(self, rows: Generator) -> Generator[Dict | Record, None, None]:
         for row in rows:
@@ -58,6 +70,7 @@ class EventImpl(EventRepositoryABC):
         # create a list of rateconf_shipment objects
         bulk_events: List[SAEvent] = []
         bulk_of_ship_events : List[SAEvent] = []
+        shipments_id_list = []
 
         event_ids = ", ".join(f"'{event['de_id']}'" for event in rows)
 
@@ -114,6 +127,7 @@ class EventImpl(EventRepositoryABC):
                             id = event_ship_next_id
                         )
                         bulk_of_ship_events.append(sa_event_ship)
+                        shipments_id_list.append(current_shipment.ds_id)
                         event_ship_next_id += 1
                         continue
 
@@ -131,6 +145,7 @@ class EventImpl(EventRepositoryABC):
                     current_shipment.has_changed_events = True
 
                     bulk_events.append(new_event)
+                    shipments_id_list.append(current_shipment.ds_id)
                     next_id += 1
 
                     # WH non existing Event
@@ -148,3 +163,4 @@ class EventImpl(EventRepositoryABC):
             
         await self.bulk_save_events(bulk_events)
         await self.bulk_save_event_shipments(bulk_of_ship_events)
+        await self.send_list_sb(shipments_id_list)

@@ -8,6 +8,7 @@ from src.domain.entities.shipment import Event, Shipment
 from src.domain.repository.shipment_abc import ShipmentRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
+from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
 from src.infrastructure.data_access.alchemy.sa_session_impl import get_sa_session
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import (
     PTSQLAnywhere,
@@ -40,6 +41,18 @@ from src.infrastructure.cross_cutting.data_types import dtypes
 
 
 class ShipmentImpl(ShipmentRepositoryABC):
+    async def send_list_sb(self, id_list: List[int]) -> None:
+        id_set = set(id_list)
+        for unique_id in id_set:
+            await self.send_sb_message(unique_id)
+
+    async def send_sb_message(self, id: int, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
+        async with ServiceBusImpl(stage=stage) as servicebus_client:
+            try:
+                await servicebus_client.send_message(data=id, queue_name=servicebus_client.queue_name)
+            except Exception as e:
+                logging.exception(f"An exception occurred while sending the message: {str(e)}")
+
     async def bulk_save(
         self,
         bulk_of_shipments: List[SAShipment],
@@ -132,6 +145,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
         eg_shipments: List[Shipment] = []
         items_list: List[SAItems] = []
         custom_fields_list = []
+        shipments_id_list = []
 
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
@@ -286,6 +300,10 @@ class ShipmentImpl(ShipmentRepositoryABC):
                         second=0, microsecond=0
                     )
 
+
+                    if new_shipment.ds_status == 'W':
+                        shipments_id_list.append(new_shipment.ds_id)
+
                     # Modifies the custom fields object to link it to the new shipment
                     if custom_fields:
                         custom_fields['id'] = next_id_custom_fields
@@ -356,6 +374,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
         # Emit information to EG Customers KPIs
         await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
+
+        # Update billed shipments
+        await self.send_list_sb(shipments_id_list)
 
         # Remove templates from Shipments
         list_of_shipments = self.remove_templates_from_shipments(

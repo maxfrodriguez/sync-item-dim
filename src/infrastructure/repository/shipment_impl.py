@@ -93,18 +93,6 @@ class ShipmentImpl(ShipmentRepositoryABC):
         ]
         return cleaned_shipments
 
-    def create_new_shipment(self, shipment: Shipment) -> Shipment:
-        pass
-
-    def create_new_template(self, shipment: Shipment) -> Shipment:
-        pass
-
-    def create_items_list(self, shipment: Shipment) -> Shipment:
-        pass
-
-    def create_new_custom_fields(self, shipment: Shipment) -> Shipment:
-        pass
-
     async def retrieve_shipment_list(
         self, last_modlog: int = None, query_to_execute: str = MODLOG_QUERY
     ) -> List[Shipment] | None:
@@ -163,7 +151,6 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 SHIPMENTS_CUSTOM_FIELDS_QUERY.format(ids), result_type=dict
             )
 
-        # if rows/rows_items is empty, raise the exeption to close the process because we need to loggin just in application layer
         assert rows, f"did't not found shipments to sync at {datetime.now()}"
         assert rows_items, f"didn't found items to sync at {datetime.now()}"
         # assert (
@@ -189,7 +176,6 @@ class ShipmentImpl(ShipmentRepositoryABC):
         rows = merged_list
         # declare a set list to store the RateConfShipment objects
         unique_shipment_ids = set()
-        # create a list of rateconf_shipment objects
         bulk_shipments: List[SAShipment] = []
         bulk_templates: List[SATemplate] = []
         bulk_of_custom_fields: List[SACustomFields] = []
@@ -232,10 +218,8 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
         # read shipments_query one by one
         for row_query in rows:
-            # create a KeyRateConfShipment object to store the data from the shipment
             shipment_hash = deep_hash(row_query)
             shipment_id = row_query["ds_id"]
-
             # validate if the unique_rateconf_key is not in the set list to avoid duplicates of the same RateConfShipment
             if shipment_id not in unique_shipment_ids:
                 # add the shipment_obj to the set list
@@ -299,10 +283,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     new_shipment.created_at = datetime.utcnow().replace(
                         second=0, microsecond=0
                     )
+                    shipments_id_list.append(new_shipment.ds_id)
 
-
-                    if new_shipment.ds_status == 'W':
-                        shipments_id_list.append(new_shipment.ds_id)
+                       
 
                     # Modifies the custom fields object to link it to the new shipment
                     if custom_fields:

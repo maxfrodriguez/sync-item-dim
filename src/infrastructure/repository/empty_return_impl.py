@@ -25,7 +25,7 @@ class EmptyReturnImpl(EmptyReturnABC):
             logging.info(f"An Exception has occured {value}")
 
     async def create_empty_return(self, shipment_list: List[Shipment]):
-        shipments_id: List[str] = [shipment.ds_id for shipment in shipment_list]
+        shipments_id: List[str] = [shipment.ds_id for shipment in shipment_list if shipment.tmp_type == 'Import' and shipment.ds_status != 'A']
         try:
             data: dict = {
                 "shipments_id": shipments_id

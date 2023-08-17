@@ -12,7 +12,7 @@ class EmptyReturnImpl(EmptyReturnABC):
     def __init__(self, stage) -> None:
         self.__enviroment: ENVIRONMENT = stage
         self.eg_client: EventGridImpl = None
-        self.__credential: str= "EVENT-GRID-ACCESS-KEY-EMPTY-RETURN"
+        self.__credential: str= "EVENT-GRID-ACCESS-KEY-EMPTY-RETURN" 
         self.__endpoint: str= "EVENT-GRID-ENDPOINT-EMPTY-RETURN"
 
     async def __aenter__(self) -> Self:

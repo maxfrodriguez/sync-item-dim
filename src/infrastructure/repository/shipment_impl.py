@@ -45,6 +45,12 @@ from src.infrastructure.repository.template_impl import TemplateImpl
 
 
 class ShipmentImpl(ShipmentRepositoryABC):
+
+    def dict_to_generator(self, data_dict):
+        for key, value in data_dict.items():
+            yield value
+
+
     async def send_list_sb(self, id_list: List[int]) -> None:
         id_set = set(id_list)
         for unique_id in id_set:
@@ -148,18 +154,59 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 SHIPMENT_EQUIPMENT_SPLITTED_QUERY.format(ids), result_type=dict
             )
 
+        result_dict = {}
+
+        for item in rows_equipment:
+            ds_id = item['ds_id']
+            eq_type = item['eq_type']
+            eq_ref = item['eq_ref']
+            
+            if eq_type == 'C':
+                ds_id = ds_id
+                eq_c_info_eq_type = item['eq_type']
+                container_id = eq_ref
+                eq_c_info_line = item['Line']
+                eq_c_info_type = item['Type']
+                
+                if ds_id not in result_dict:
+                    result_dict[ds_id] = {}
+                    
+                result_dict[ds_id]['ds_id'] = ds_id
+                result_dict[ds_id]['eq_c_info_eq_type'] = eq_c_info_eq_type
+                result_dict[ds_id]['eq_c_info_line'] = eq_c_info_line
+                result_dict[ds_id]['eq_c_info_type'] = eq_c_info_type
+                result_dict[ds_id]['container_id'] = container_id
+
+            elif eq_type == 'H':
+                ds_id = ds_id
+                eq_h_info_eq_type = item['eq_type']
+                chassis_id = eq_ref
+                eq_h_info_line = item['Line']
+                eq_h_info_type = item['Type']
+                
+                if ds_id not in result_dict:
+                    result_dict[ds_id] = {}
+                    
+                result_dict[ds_id]['ds_id'] = ds_id
+                result_dict[ds_id]['eq_h_info_eq_type'] = eq_h_info_eq_type
+                result_dict[ds_id]['eq_h_info_line'] = eq_h_info_line
+                result_dict[ds_id]['eq_h_info_type'] = eq_h_info_type
+                result_dict[ds_id]['chassis_id'] = chassis_id
+
+
         rows_items: Generator[Record, None, None] = await item_client.get_items(shipments=list_of_shipments)
         rows_custom_fields: Generator[Record, None, None] = await custom_field_client.get_custom_fields(shipments=list_of_shipments)
 
         assert rows, f"did't not find shipments to sync at {datetime.now()}"
 
         # Unifies the shipment and equipment rows using pandas.
+        equipments_rows = list(result_dict.values())
         merged_list = []
 
         for row in rows:
             ds_id = row["ds_id"]
             matching_rows = [
-                eq_row for eq_row in rows_equipment if eq_row["ds_id"] == ds_id
+                eq_row for eq_row in equipments_rows if eq_row["ds_id"] == ds_id
             ]
 
             if matching_rows:
@@ -169,7 +216,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
             else:
                 merged_list.append(row)  # Agregar la fila original sin modificaciones
 
-        rows = merged_list
+        all_rows = merged_list
         # declare a set list to store the RateConfShipment objects
         unique_shipment_ids = set()
         bulk_shipments: List[SAShipment] = []
@@ -213,7 +260,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
         )
 
         # read shipments_query one by one
-        for row_query in rows:
+        for row_query in all_rows:
             shipment_hash = deep_hash(row_query)
             shipment_id = row_query["ds_id"]
             # validate if the unique_rateconf_key is not in the set list to avoid duplicates of the same RateConfShipment

@@ -272,14 +272,14 @@ SELECT DISTINCT
     , ds.ds_bill_charge
     , ds.ds_ac_totamt
     , ds.ds_parentid
-    , cs.linkedeq1type
-    , cs.linkedeq1ref
-    , cs.linkedeq1leaseline
-    , cs.linkedeq1leasetype
-    , cs.linkedeq2type
-    , cs.linkedeq2ref
-    , cs.linkedeq2leaseline
-    , cs.linkedeq2leasetype
+    -- , cs.linkedeq1type
+    -- , cs.linkedeq1ref
+    -- , cs.linkedeq1leaseline
+    -- , cs.linkedeq1leasetype
+    -- , cs.linkedeq2type
+    -- , cs.linkedeq2ref
+    -- , cs.linkedeq2leaseline
+    -- , cs.linkedeq2leasetype
     , c1.co_id AS customer_id
     , c1.co_name AS customer_name
     , c1.co_addr1 AS customer_address
@@ -339,23 +339,42 @@ ORDER BY ds.ds_id
 	, di_hcap.RateCodename
 """ 
 
+# SHIPMENT_EQUIPMENT_SPLITTED_QUERY: Final [str] = """
+# SELECT DISTINCT
+#     ds.ds_id
+#     , eqpC.eq_id AS eq_c_info_id
+#     , eqinfoC.eq_type AS eq_c_info_eq_type
+#     , eqinfoC.eq_ref AS container_id
+#     , eqpH.eq_id AS eq_h_info_id
+#     , eqinfoH.eq_type AS eq_h_info_eq_type
+#     , eqinfoH.eq_ref AS chassis_id
+# FROM [DBA].[disp_ship] ds
+# 	LEFT JOIN [DBA].[equip2_shiplinks] eqpC ON eqpC.ds_id = ds.ds_id
+# 	INNER JOIN [DBA].[equip2_info] eqinfoC ON eqinfoC.eq_id = eqpC.eq_id and eqinfoC.eq_type = 'C' 
+# 	LEFT JOIN [DBA].[equip2_shiplinks] eqpH ON eqpH.ds_id = ds.ds_id
+# 	INNER JOIN [DBA].[equip2_info] eqinfoH ON eqinfoH.eq_id = eqpH.eq_id and eqinfoH.eq_type = 'H'
+# WHERE 
+#     ds.ds_id IN ({})
+# ORDER BY ds.ds_id
+# """
+
 SHIPMENT_EQUIPMENT_SPLITTED_QUERY: Final [str] = """
 SELECT DISTINCT
     ds.ds_id
-    , eqpC.eq_id AS eq_c_info_id
-    , eqinfoC.eq_type AS eq_c_info_eq_type
-    , eqinfoC.eq_ref AS container_id
-    , eqpH.eq_id AS eq_h_info_id
-    , eqinfoH.eq_type AS eq_h_info_eq_type
-    , eqinfoH.eq_ref AS chassis_id
+    , eqtype.Line
+    , eqtype.Type
+    , eq.fkequipmentleasetype
+    , eqinfoC.eq_type
+    , eqinfoC.eq_ref
+
 FROM [DBA].[disp_ship] ds
-	LEFT JOIN [DBA].[equip2_shiplinks] eqpC ON eqpC.ds_id = ds.ds_id
-	INNER JOIN [DBA].[equip2_info] eqinfoC ON eqinfoC.eq_id = eqpC.eq_id and eqinfoC.eq_type = 'C' 
-	LEFT JOIN [DBA].[equip2_shiplinks] eqpH ON eqpH.ds_id = ds.ds_id
-	INNER JOIN [DBA].[equip2_info] eqinfoH ON eqinfoH.eq_id = eqpH.eq_id and eqinfoH.eq_type = 'H'
+    LEFT JOIN [DBA].[equip2_leaseInfo_EP] eq on eq.originationshipment = ds.ds_id
+    LEFT JOIN [DBA].[equipmentleasetype] eqtype ON eqtype.id = eq.fkequipmentleasetype
+    LEFT JOIN [DBA].[equip2_info] eqinfoC ON eqinfoC.eq_id = eq.oe_id
 WHERE 
     ds.ds_id IN ({})
 ORDER BY ds.ds_id
+
 """
 
 SHIPMENTS_CUSTOM_FIELDS_QUERY : Final [str] = """
@@ -495,9 +514,87 @@ LEFT JOIN [DBA].[modlog_ship] md_ds
   ON ds.ds_id = md_ds.ds_id
 LEFT JOIN [DBA].[modlog] md
   ON md.mod_id = md_ds.mod_id
-WHERE md.mod_datetime BETWEEN '2023-08-16 15:00:00' AND '2023-08-16 23:59:59'
-AND mod_type = 'C'
---WHERE ds.ds_id IN (141622, 140645)
+-- WHERE md.mod_datetime BETWEEN '2023-08-16 15:00:00' AND '2023-08-16 23:59:59'
+-- AND mod_type = 'C'
+WHERE ds.ds_id IN (
+140864,
+141499,
+141532,
+141533,
+141540,
+141543,
+141544,
+141547,
+141548,
+141549,
+141550,
+141552,
+141612,
+141630,
+141696,
+141713,
+141714,
+141715,
+141724,
+141803,
+141804,
+141812,
+141813,
+141815,
+141816,
+141818,
+141829,
+141830,
+141832,
+141834,
+141835,
+141836,
+141839,
+141852,
+141853,
+141854,
+141855,
+141856,
+141857,
+141859,
+141860,
+141861,
+141862,
+141863,
+141864,
+141865,
+141866,
+141867,
+141868,
+141869,
+142294,
+142306,
+142307,
+142313,
+142340,
+142355,
+142359,
+142360,
+142361,
+142386,
+142390,
+142432,
+142471,
+142476,
+142477,
+142480,
+142495,
+142496,
+142592,
+142655,
+142677,
+142678,
+142825,
+142909,
+142933,
+142981,
+143068
+)
 AND ds.ds_status NOT IN ('A')
 GROUP BY ds.ds_id,
   ds.ds_status

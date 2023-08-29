@@ -161,7 +161,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
             eq_type = item['eq_type']
             eq_ref = item['eq_ref']
             
-            if eq_type == 'C':
+            if eq_type == 'C' and item['Line'] is not None and item['Type'] is not None:
                 ds_id = ds_id
                 eq_c_info_eq_type = item['eq_type']
                 container_id = eq_ref

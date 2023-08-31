@@ -1,6 +1,7 @@
 import logging
-from typing import Optional
+from typing import List, Optional
 from typing_extensions import Self
+from src.domain.entities.customer import Customer
 from src.domain.repository.customer_kpi_abc import CustomerKpiABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
@@ -22,9 +23,10 @@ class CustomerKpiImpl(CustomerKpiABC):
         if exc_type is not None:
             logging.info(f"An Exception has occured {value}")
     
-    async def send_customer_kpi_sb(self, shipment_list: list):
+    async def send_customer_kpi_sb(self, shipments_customers: List[Customer]):
         try:
-            if shipment_list:
-                await self._sb_client.send_message(shipment_list)
+            if shipments_customers:
+                data = [shipment_customer.to_dict() for shipment_customer in shipments_customers]
+                await self._sb_client.send_message(data=data)
         except Exception as e:
             logging.error(f"Error in send_customer_kpi_sb: {e}")

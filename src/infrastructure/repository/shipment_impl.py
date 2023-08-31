@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from typing import Any, Dict, Generator, List, Literal
 from src.domain.entities.custom_field import CustomField
+from src.domain.entities.customer import Customer
 
 from src.domain.entities.shipment import Event, Shipment
 from src.domain.repository.shipment_abc import ShipmentRepositoryABC
@@ -141,6 +142,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
         items_list: List[SAItems] = []
         custom_fields_list = []
         shipments_id_list = []
+        customers_shipments_list: List[Customer] = []
         item_client: ItemImpl = ItemImpl()
         template_client: TemplateImpl = TemplateImpl()
         custom_field_client: CustomFieldImpl = CustomFieldImpl()
@@ -308,6 +310,14 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     new_shipment.created_at = datetime.utcnow().replace(second=0, microsecond=0)
                     shipments_id_list.append(new_shipment.ds_id)
 
+                    #Add current shipment, customer and template info
+                    new_customer: Customer = Customer(
+                        ds_id=new_shipment.ds_id,
+                        template_id=new_shipment.template_id,
+                        customer_id=new_shipment.customer_id
+                    )
+                    customers_shipments_list.append(new_customer)
+
                     # Modifies the custom fields object to link it to the new shipment
                     if custom_fields:
                         custom_fields["id"] = next_id_custom_fields
@@ -368,4 +378,4 @@ class ShipmentImpl(ShipmentRepositoryABC):
             shipment_list=list_of_shipments
         )
         
-        return list_of_shipments, shipments_id_list
+        return list_of_shipments, shipments_id_list, customers_shipments_list

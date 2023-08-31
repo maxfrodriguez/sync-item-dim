@@ -53,8 +53,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
     async def send_list_sb(self, id_list: List[int]) -> None:
         id_set = set(id_list)
-        for unique_id in id_set:
-            await self.send_sb_message(unique_id)
+        id_list_from_set = list(id_set)
+        
+        await self.send_sb_message(id_list_from_set)
 
     async def send_sb_message(
         self, id: int, stage: ENVIRONMENT = ENVIRONMENT.PRD
@@ -362,11 +363,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
         # Emit information to EG Customers KPIs
         await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
 
-        # Update billed shipments
-        await self.send_list_sb(shipments_id_list)
-
         # Remove templates from Shipments
         list_of_shipments = self.remove_templates_from_shipments(
             shipment_list=list_of_shipments
         )
-        return list_of_shipments
+        
+        return list_of_shipments, shipments_id_list

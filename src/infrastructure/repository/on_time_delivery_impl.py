@@ -10,7 +10,7 @@ class OnTimeDeliveryImpl(OnTimeDeliveryABC):
     def __init__(self, stage) -> None:
         self.__enviroment: ENVIRONMENT = stage
         self._sb_client: ServiceBusImpl = None
-        self.__sb_con_string: str= "SB-CONN-STR-ON-TIME-DELIVERY" 
+        self.__sb_con_string: str= "SERVICE-BUS-CONN-STRING" 
         self.__queue_name: str= "SB-QUEUE-ON-TIME-DELIVERY"
 
     async def __aenter__(self) -> Self:

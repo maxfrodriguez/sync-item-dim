@@ -11,7 +11,7 @@ class CustomerKpiImpl(CustomerKpiABC):
     def __init__(self, stage) -> None:
         self.__enviroment: ENVIRONMENT = stage
         self._sb_client: ServiceBusImpl = None
-        self.__sb_con_string: str= "SB-CONN-STR-CUSTOMER-KPI"
+        self.__sb_con_string: str= "SB-CONN-STRING"
         self.__queue_name: str= "SB-QUEUE-CUSTOMER-KPI"
 
     async def __aenter__(self) -> Self:

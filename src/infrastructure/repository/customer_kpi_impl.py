@@ -11,7 +11,7 @@ class CustomerKpiImpl(CustomerKpiABC):
     def __init__(self, stage) -> None:
         self.__enviroment: ENVIRONMENT = stage
         self._sb_client: ServiceBusImpl = None
-        self.__sb_con_string: str= "SB-CONN-STRING"
+        self.__sb_con_string: str= "SERVICE-BUS-CONN-STRING"
         self.__queue_name: str= "SB-QUEUE-CUSTOMER-KPI"
 
     async def __aenter__(self) -> Self:
@@ -26,7 +26,7 @@ class CustomerKpiImpl(CustomerKpiABC):
     async def send_customer_kpi_sb(self, shipments_customers: List[Customer]):
         try:
             if shipments_customers:
-                data = [shipment_customer.to_dict() for shipment_customer in shipments_customers]
-                await self._sb_client.send_message(data=data)
+                for customer in shipments_customers:
+                    await self._sb_client.send_message(data=customer)
         except Exception as e:
             logging.error(f"Error in send_customer_kpi_sb: {e}")

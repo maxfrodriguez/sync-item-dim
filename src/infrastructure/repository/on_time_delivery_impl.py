@@ -25,6 +25,7 @@ class OnTimeDeliveryImpl(OnTimeDeliveryABC):
     async def send_on_time_delivery_sb(self, shipment_list: list):
         try:
             if shipment_list:
-                await self._sb_client.send_message(shipment_list)
+                id_list = [shipment.ds_id for shipment in shipment_list]
+                await self._sb_client.send_message(id_list)
         except Exception as e:
             logging.error(f"Error in create_on_time_delivery: {e}")

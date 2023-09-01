@@ -34,4 +34,4 @@ async def sync_dimension_tables(shipments: List[Shipment]):
                 async with CustomerKpiImpl(stage=ENVIRONMENT.PRD) as customer_kpi_client:
                     await empty_return_client.create_empty_return(shipment_list=shipments)
                     await on_time_delivery_client.send_on_time_delivery_sb(shipment_list=shipments)
-                    await customer_kpi_client.send_customer_kpi_sb(shipment_list=customers_shipments_list)
+                    await customer_kpi_client.send_customer_kpi_sb(shipments_customers=customers_shipments_list)

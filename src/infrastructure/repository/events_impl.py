@@ -162,4 +162,3 @@ class EventImpl(EventRepositoryABC):
             
         await self.bulk_save_events(bulk_events)
         await self.bulk_save_event_shipments(bulk_of_ship_events)
-        await self.send_list_sb(shipments_id_list)

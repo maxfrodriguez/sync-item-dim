@@ -312,7 +312,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
                     #Add current shipment, customer and template info
                     new_customer: Customer = Customer(
-                        ds_id=new_shipment.ds_id,
+                        tmp=new_shipment.ds_id,
                         template_id=new_shipment.template_id,
                         customer_id=new_shipment.customer_id
                     )

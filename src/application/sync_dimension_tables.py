@@ -3,15 +3,12 @@ from src.domain.entities.customer import Customer
 
 from src.domain.entities.shipment import Shipment
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
-from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
 from src.infrastructure.repository.customer_kpi_impl import CustomerKpiImpl
 from src.infrastructure.repository.empty_return_impl import EmptyReturnImpl
 from src.infrastructure.repository.events_impl import EventImpl
 from src.infrastructure.repository.on_time_delivery_impl import OnTimeDeliveryImpl
-from src.infrastructure.repository.recalculate_movements_impl import RecalculateMovementsImpl
 from src.infrastructure.repository.shipment_impl import ShipmentImpl
 from src.infrastructure.repository.stops_impl import StopsImpl
-from src.infrastructure.repository.street_turn_impl import StreetTurnImpl
 
 
 async def sync_dimension_tables(shipments: List[Shipment]):
@@ -28,6 +25,8 @@ async def sync_dimension_tables(shipments: List[Shipment]):
 
         id_set = set(shipments_id_list)
         id_list_from_set = [id for id in id_set]
+
+        # Changing events
         
         async with EmptyReturnImpl(stage=ENVIRONMENT.PRD) as empty_return_client:
             async with OnTimeDeliveryImpl(stage=ENVIRONMENT.PRD) as on_time_delivery_client:

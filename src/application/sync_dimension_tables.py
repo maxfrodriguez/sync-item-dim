@@ -1,6 +1,4 @@
 from typing import List
-from src.domain.entities.customer import Customer
-
 from src.domain.entities.shipment import Shipment
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.repository.customer_kpi_impl import CustomerKpiImpl
@@ -22,11 +20,6 @@ async def sync_dimension_tables(shipments: List[Shipment]):
     if shipments:
         await event_client.save_and_sync_events(list_of_shipments=shipments)
         await stop_client.save_and_sync_stops(list_of_shipments=shipments)
-
-        id_set = set(shipments_id_list)
-        id_list_from_set = [id for id in id_set]
-
-        # Changing events
         
         async with EmptyReturnImpl(stage=ENVIRONMENT.PRD) as empty_return_client:
             async with OnTimeDeliveryImpl(stage=ENVIRONMENT.PRD) as on_time_delivery_client:

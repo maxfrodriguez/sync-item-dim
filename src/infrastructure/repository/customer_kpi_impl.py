@@ -27,6 +27,7 @@ class CustomerKpiImpl(CustomerKpiABC):
         try:
             if shipments_customers:
                 for customer in shipments_customers:
-                    await self._sb_client.send_message(data=customer)
+                    if customer.tmp and customer.customer_id and customer.template_id:
+                        await self._sb_client.send_message(data=customer)
         except Exception as e:
             logging.error(f"Error in send_customer_kpi_sb: {e}")

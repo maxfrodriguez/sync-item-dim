@@ -25,11 +25,13 @@ class CustomerKpiImpl(CustomerKpiABC):
     
     async def send_customer_kpi_sb(self, shipments_customers: List[Customer]):
         customers: List[Customer] = []
+        customer_hash: set = set()
         try:
             if shipments_customers:
                 for customer in shipments_customers:
-                    if customer.tmp and customer.customer_id and customer.template_id:
+                    if customer.tmp and customer.customer_id and customer.template_id and customer.customer_id not in customer_hash:
                         customers.append(customer)
+                        customer_hash.add(customer.customer_id)
                         
                 await self._sb_client.send_message(data=customers)
         except Exception as e:

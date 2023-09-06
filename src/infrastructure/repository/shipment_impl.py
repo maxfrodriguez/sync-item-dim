@@ -3,19 +3,21 @@ import logging
 from datetime import datetime, timedelta
 import pandas as pd
 from typing import Any, Dict, Generator, List, Literal
+from src.domain.entities.custom_field import CustomField
+from src.domain.entities.customer import Customer
 
 from src.domain.entities.shipment import Event, Shipment
 from src.domain.repository.shipment_abc import ShipmentRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
 from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
+from src.infrastructure.cross_cutting.shipment_helper import get_quote_id, get_template_id
 from src.infrastructure.data_access.alchemy.sa_session_impl import get_sa_session
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import (
     PTSQLAnywhere,
 )
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import (
     COMPLETE_EVENT_QUERY,
-    COMPLETE_SHIPMENT_QUERY,
     ITEMS_QUERY,
     MODLOG_QUERY,
     NEXT_ID_WH,
@@ -35,37 +37,49 @@ from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client im
     WareHouseDbConnector,
 )
 from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
+from src.infrastructure.repository.custom_field_impl import CustomFieldImpl
 from src.infrastructure.repository.fact_customer_kpi_impl import FactCustomerKPIImpl
+from src.infrastructure.repository.item_impl import ItemImpl
 from src.infrastructure.repository.street_turn_impl import StreetTurnImpl
 from src.infrastructure.cross_cutting.data_types import dtypes
+from src.infrastructure.repository.template_impl import TemplateImpl
 
 
 class ShipmentImpl(ShipmentRepositoryABC):
+
+    def dict_to_generator(self, data_dict):
+        for key, value in data_dict.items():
+            yield value
+
+
     async def send_list_sb(self, id_list: List[int]) -> None:
         id_set = set(id_list)
-        for unique_id in id_set:
-            await self.send_sb_message(unique_id)
+        id_list_from_set = list(id_set)
+        
+        await self.send_sb_message(id_list_from_set)
 
-    async def send_sb_message(self, id: int, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
+    async def send_sb_message(
+        self, id: int, stage: ENVIRONMENT = ENVIRONMENT.PRD
+    ) -> None:
         async with ServiceBusImpl(stage=stage) as servicebus_client:
             try:
-                await servicebus_client.send_message(data=id, queue_name=servicebus_client.queue_name)
+                await servicebus_client.send_message(
+                    data=id, queue_name=servicebus_client.queue_name
+                )
             except Exception as e:
-                logging.exception(f"An exception occurred while sending the message: {str(e)}")
+                logging.exception(
+                    f"An exception occurred while sending the message: {str(e)}"
+                )
 
     async def bulk_save(
         self,
         bulk_of_shipments: List[SAShipment],
-        bulk_of_templates: List[SATemplate],
-        bulk_of_items: List[SAItems],
-        bulk_of_custom_fields: List[SACustomFields],
+        bulk_of_templates: List[SATemplate]
     ) -> None:
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_of_shipments)
             wh_client.bulk_copy(bulk_of_templates)
-            wh_client.bulk_copy(bulk_of_items)
-            wh_client.bulk_copy(bulk_of_custom_fields)
-
+    
     async def emit_to_eg_street_turn(self, eg_shipments: List[Shipment]):
         if len(eg_shipments) > 0:
             async with StreetTurnImpl(stage=ENVIRONMENT.PRD) as street_turn_client:
@@ -75,15 +89,6 @@ class ShipmentImpl(ShipmentRepositoryABC):
         if len(eg_shipments) > 0:
             async with FactCustomerKPIImpl(stage=ENVIRONMENT.PRD) as customer_kpi_impl:
                 await customer_kpi_impl.send_customer_kd_info(eg_shipments)
-
-    async def get_shipment_by_id(self, shipment: Shipment) -> Shipment:
-        async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
-            result: Generator[Record, None, None] = sybase_client.SELECT(
-                COMPLETE_EVENT_QUERY.format(shipment.ds_id), result_type=dict
-            )
-            if result:
-                shipment.events = [Event(**event) for event in result]
-            return shipment
 
     def remove_templates_from_shipments(
         self, shipment_list: List[Shipment]
@@ -109,7 +114,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
         async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
             result: Generator[Record, None, None] = sybase_client.SELECT(
-                query_to_execute.format(latest_sa_mod_log.mod_highest_version, mod_datetime)
+                query_to_execute.format(
+                    latest_sa_mod_log.mod_highest_version, mod_datetime
+                )
             )
 
             if result:
@@ -130,10 +137,15 @@ class ShipmentImpl(ShipmentRepositoryABC):
     async def save_and_sync_shipment(
         self, list_of_shipments: List[Shipment]
     ) -> List[Shipment]:
+        templates_list = []
         eg_shipments: List[Shipment] = []
         items_list: List[SAItems] = []
         custom_fields_list = []
         shipments_id_list = []
+        customers_shipments_list: List[Customer] = []
+        item_client: ItemImpl = ItemImpl()
+        template_client: TemplateImpl = TemplateImpl()
+        custom_field_client: CustomFieldImpl = CustomFieldImpl()
 
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
 
@@ -144,26 +156,60 @@ class ShipmentImpl(ShipmentRepositoryABC):
             rows_equipment: Generator[Record, None, None] = sybase_client.SELECT(
                 SHIPMENT_EQUIPMENT_SPLITTED_QUERY.format(ids), result_type=dict
             )
-            rows_items: Generator[Record, None, None] = sybase_client.SELECT(
-                ITEMS_QUERY.format(ids), result_type=dict
-            )
-            rows_custom_fields: Generator[Record, None, None] = sybase_client.SELECT(
-                SHIPMENTS_CUSTOM_FIELDS_QUERY.format(ids), result_type=dict
-            )
 
-        assert rows, f"did't not found shipments to sync at {datetime.now()}"
-        assert rows_items, f"didn't found items to sync at {datetime.now()}"
-        # assert (
-        #     rows_custom_fields
-        # ), f"didn't found custom fields to sync at {datetime.now()}"
+        result_dict = {}
+
+        for item in rows_equipment:
+            ds_id = item['ds_id']
+            eq_type = item['eq_type']
+            eq_ref = item['eq_ref']
+            
+            if eq_type == 'C' and item['Line'] is not None and item['Type'] is not None:
+                ds_id = ds_id
+                eq_c_info_eq_type = item['eq_type']
+                container_id = eq_ref
+                eq_c_info_line = item['Line']
+                eq_c_info_type = item['Type']
+                
+                if ds_id not in result_dict:
+                    result_dict[ds_id] = {}
+                    
+                result_dict[ds_id]['ds_id'] = ds_id
+                result_dict[ds_id]['eq_c_info_eq_type'] = eq_c_info_eq_type
+                result_dict[ds_id]['eq_c_info_line'] = eq_c_info_line
+                result_dict[ds_id]['eq_c_info_type'] = eq_c_info_type
+                result_dict[ds_id]['container_id'] = container_id
+
+            elif eq_type == 'H':
+                ds_id = ds_id
+                eq_h_info_eq_type = item['eq_type']
+                chassis_id = eq_ref
+                eq_h_info_line = item['Line']
+                eq_h_info_type = item['Type']
+                
+                if ds_id not in result_dict:
+                    result_dict[ds_id] = {}
+                    
+                result_dict[ds_id]['ds_id'] = ds_id
+                result_dict[ds_id]['eq_h_info_eq_type'] = eq_h_info_eq_type
+                result_dict[ds_id]['eq_h_info_line'] = eq_h_info_line
+                result_dict[ds_id]['eq_h_info_type'] = eq_h_info_type
+                result_dict[ds_id]['chassis_id'] = chassis_id
+
+
+        rows_items: Generator[Record, None, None] = await item_client.get_items(shipments=list_of_shipments)
+        rows_custom_fields: Generator[Record, None, None] = await custom_field_client.get_custom_fields(shipments=list_of_shipments)
+
+        assert rows, f"did't not find shipments to sync at {datetime.now()}"
 
         # Unifies the shipment and equipment rows using pandas.
+        equipments_rows = list(result_dict.values())
         merged_list = []
 
         for row in rows:
             ds_id = row["ds_id"]
             matching_rows = [
-                eq_row for eq_row in rows_equipment if eq_row["ds_id"] == ds_id
+                eq_row for eq_row in equipments_rows if eq_row["ds_id"] == ds_id
             ]
 
             if matching_rows:
@@ -173,7 +219,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
             else:
                 merged_list.append(row)  # Agregar la fila original sin modificaciones
 
-        rows = merged_list
+        all_rows = merged_list
         # declare a set list to store the RateConfShipment objects
         unique_shipment_ids = set()
         bulk_shipments: List[SAShipment] = []
@@ -217,12 +263,11 @@ class ShipmentImpl(ShipmentRepositoryABC):
         )
 
         # read shipments_query one by one
-        for row_query in rows:
+        for row_query in all_rows:
             shipment_hash = deep_hash(row_query)
             shipment_id = row_query["ds_id"]
             # validate if the unique_rateconf_key is not in the set list to avoid duplicates of the same RateConfShipment
             if shipment_id not in unique_shipment_ids:
-                # add the shipment_obj to the set list
                 unique_shipment_ids.add(shipment_id)
 
                 filtered_shipments = [
@@ -240,31 +285,17 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 ]
 
                 if filtered_shipments:
-                    # get the shipment to update with the id to be inserted
+                    # Gets the shipment to update with the id to be inserted
                     filtered_shipment = filtered_shipments[0]
-                    # Shipment custom fields
-                    custom_fields = (
-                        list_of_custom_fields[0] if list_of_custom_fields else None
-                    )
+                    custom_fields = (list_of_custom_fields[0] if list_of_custom_fields else None)
 
-                    # Comparamos Hashes
+                    # Compares Hashes
                     if (
                         shipment_hash
                         and shipment_id in shipments_hash_list
                         and shipments_hash_list[shipment_id]
-                     )  and str(shipment_hash) == shipments_hash_list[shipment_id]:
+                    ) and str(shipment_hash) == shipments_hash_list[shipment_id]:
                         filtered_shipment.id = int(shipment_id_list[shipment_id])
-                        # For existing shipments:
-                        # if custom_fields:
-                        #     custom_fields['id'] = next_id_custom_fields
-                        #     custom_fields['sk_id_shipment_fk'] = filtered_shipment.id
-                        #     custom_fields['created_at'] = datetime.utcnow().replace(
-                        #         second=0, microsecond=0
-                        #     )
-
-                        #     # Adds the custom fields to the list
-                        #     custom_fields_list.append(custom_fields)
-                        #     next_id_custom_fields += 1
                         continue
 
                     # Add shipment changed
@@ -273,74 +304,52 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     # Create a new shipment object with the next id
                     del row_query["RateCodename"]
                     new_shipment: SAShipment = SAShipment(**row_query)
-                    template_id = re.sub("[^0-9]", "", new_shipment.template_id)
-                    new_shipment.template_id = (
-                        None if not template_id else int(template_id)
-                    )
-                    # new_shipment.id = next_id
+                    new_shipment.template_id = get_template_id(value=new_shipment.template_id)
                     new_shipment.id = next_id
                     new_shipment.hash = shipment_hash
-                    new_shipment.created_at = datetime.utcnow().replace(
-                        second=0, microsecond=0
-                    )
+                    new_shipment.created_at = datetime.utcnow().replace(second=0, microsecond=0)
                     shipments_id_list.append(new_shipment.ds_id)
 
-                       
+                    #Add current shipment, customer and template info
+                    new_customer: Customer = Customer(
+                        tmp=new_shipment.ds_id,
+                        template_id=new_shipment.template_id,
+                        customer_id=new_shipment.customer_id
+                    )
+                    customers_shipments_list.append(new_customer)
 
                     # Modifies the custom fields object to link it to the new shipment
                     if custom_fields:
-                        custom_fields['id'] = next_id_custom_fields
-                        custom_fields['sk_id_shipment_fk'] = new_shipment.id
-                        custom_fields['created_at'] = datetime.utcnow().replace(
-                            second=0, microsecond=0
-                        )
-
-                        # Adds the custom fields to the list
+                        custom_fields["id"] = next_id_custom_fields
+                        custom_fields["sk_id_shipment_fk"] = new_shipment.id
+                        custom_fields["created_at"] = datetime.utcnow().replace(second=0, microsecond=0)
                         custom_fields_list.append(custom_fields)
                         next_id_custom_fields += 1
 
-                    # Adds new quote_id and quote_note to Shipments and Templates
-                    if (
-                        new_shipment.quote_id is None
-                        and new_shipment.quote_note is not None
-                    ):
-                        s = new_shipment.quote_note
-                        match = re.search(r"QUOTE#\s*(.*?)\s*-", s)
-                        if match:
-                            new_shipment.quote_id = match.group(1)
+                    # Assigns the quote_id to the shipment
+                    if (new_shipment.quote_id is None and new_shipment.quote_note is not None):
+                        new_shipment.quote_id = get_quote_id(value=new_shipment.quote_note)
 
                     # Saves item_list per shipment
                     for item in list_of_items:
                         new_sa_item: SAItems = SAItems(**item)
                         new_sa_item.id = next_id_item
                         new_sa_item.sk_id_shipment_fk = next_id
-                        new_sa_item.created_at = datetime.utcnow().replace(
-                            second=0, microsecond=0
-                        )
+                        new_sa_item.created_at = datetime.utcnow().replace(second=0, microsecond=0)
                         items_list.append(new_sa_item)
                         next_id_item += 1
 
                     # add to the list will use in the bulk copy
-                    if new_shipment.ds_status != "A":
-                        bulk_shipments.append(new_shipment)
-                    else:
+                    if new_shipment.ds_status == "A":
                         del row_query["division"]
-                        new_sa_template = SATemplate(**row_query)
-                        template_id = re.sub("[^0-9]", "", new_sa_template.template_id)
-                        new_sa_template.template_id = (
-                            None if not template_id else int(template_id)
-                        )
-                        new_sa_template.hash = shipment_hash
-                        new_sa_template.created_at = datetime.utcnow().replace(
-                            second=0, microsecond=0
-                        )
-                        bulk_templates.append(new_sa_template)
+                        row_query["hash"] = shipment_hash
+                        templates_list.append(row_query)
+                    else:
+                        bulk_shipments.append(new_shipment)
 
                     # fill the shipment entity with the data we need to calculate the KPI
                     filtered_shipment.tmp_type = new_shipment.TmpType
                     filtered_shipment.id = next_id
-
-                    # add one to continue with the next Shipment.
                     next_id += 1
                 else:
                     logging.warning(f"Did't find the shipment: {shipment_id}")
@@ -350,7 +359,13 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 new_sa_custom_fields: SACustomFields = SACustomFields(**custom_field)
                 bulk_of_custom_fields.append(new_sa_custom_fields)
 
-        await self.bulk_save(bulk_shipments, bulk_templates, items_list, bulk_of_custom_fields)
+        # Save Shipments and Templates
+        await self.bulk_save(bulk_shipments, bulk_templates)
+
+        # Save Templates, Items and Custom Fields
+        await template_client.save_templates(templates_list)
+        await item_client.save_items(items_list)
+        await custom_field_client.save_custom_fields(bulk_of_custom_fields)
 
         # Emit information to EG Street Turns
         await self.emit_to_eg_street_turn(eg_shipments=eg_shipments)
@@ -358,11 +373,9 @@ class ShipmentImpl(ShipmentRepositoryABC):
         # Emit information to EG Customers KPIs
         await self.emit_to_eg_customer_kpi(eg_shipments=eg_shipments)
 
-        # Update billed shipments
-        await self.send_list_sb(shipments_id_list)
-
         # Remove templates from Shipments
         list_of_shipments = self.remove_templates_from_shipments(
             shipment_list=list_of_shipments
         )
-        return list_of_shipments
+        
+        return list_of_shipments, shipments_id_list, customers_shipments_list

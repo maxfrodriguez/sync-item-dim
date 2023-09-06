@@ -24,10 +24,13 @@ class CustomerKpiImpl(CustomerKpiABC):
             logging.info(f"An Exception has occured {value}")
     
     async def send_customer_kpi_sb(self, shipments_customers: List[Customer]):
+        customers: List[Customer] = []
         try:
             if shipments_customers:
                 for customer in shipments_customers:
                     if customer.tmp and customer.customer_id and customer.template_id:
-                        await self._sb_client.send_message(data=customer)
+                        customers.append(customer)
+                        
+                await self._sb_client.send_message(data=customers)
         except Exception as e:
             logging.error(f"Error in send_customer_kpi_sb: {e}")

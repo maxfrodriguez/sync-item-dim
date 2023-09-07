@@ -33,7 +33,9 @@ class HubspotImpl(HubspotABC):
                     if customer.tmp and customer.customer_id and customer.template_id and customer.customer_id not in customer_hash :
                         customers.append(customer)
                         customer_hash.add(customer.customer_id)
-                        
-                await self._sb_client.send_message(data=customer_hash)
+                
+                if customer_hash:
+                    customer_list = list(customer_hash)
+                    await self._sb_client.send_message(data=customer_list)
         except Exception as e:
             logging.error(f"Error in send_customer_sb: {e}")

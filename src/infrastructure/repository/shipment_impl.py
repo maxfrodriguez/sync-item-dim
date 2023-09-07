@@ -294,7 +294,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
                         shipment_hash
                         and shipment_id in shipments_hash_list
                         and shipments_hash_list[shipment_id]
-                    ) and str(shipment_hash) == shipments_hash_list[shipment_id]:
+                    ) and str(shipment_hash) != shipments_hash_list[shipment_id]:
                         filtered_shipment.id = int(shipment_id_list[shipment_id])
                         continue
 

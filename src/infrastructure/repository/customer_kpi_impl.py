@@ -29,9 +29,9 @@ class CustomerKpiImpl(CustomerKpiABC):
         try:
             if shipments_customers:
                 for customer in shipments_customers:
-                    if customer.tmp and customer.customer_id and customer.template_id and customer.customer_id not in customer_hash:
+                    if customer.tmp and customer.customer_id and customer.template_id :
                         customers.append(customer)
-                        customer_hash.add(customer.customer_id)
+                        # customer_hash.add(customer.customer_id)
                         
                 await self._sb_client.send_message(data=customers)
         except Exception as e:

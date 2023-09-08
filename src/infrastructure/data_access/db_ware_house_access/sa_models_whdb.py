@@ -52,6 +52,7 @@ class SAShipment(Base, SAModelBaseWareHouse):
     ds_status = Column(String, nullable=True)
     template_id = Column(Integer, nullable=True)
     ds_status_text = Column(String, nullable=True)
+    division = Column(String, nullable=True)
     MasterBL = Column(String, nullable=True)
     ds_hazmat = Column(String, nullable=True)
     ds_expedite = Column(String, nullable=True)
@@ -82,9 +83,11 @@ class SAShipment(Base, SAModelBaseWareHouse):
     del_pk_time = Column(Time, nullable=True)
     ds_origin_id = Column(Integer, nullable=True)
     org_name = Column(String, nullable=True)
+    org_city = Column(String, nullable=True)
     org_zip = Column(String, nullable=True)
     ds_findest_id = Column(Integer, nullable=True)
     destination_name = Column(String, nullable=True)
+    destination_city = Column(String, nullable=True)
     destinantion_zip = Column(String, nullable=True)
     TmpType = Column(String, nullable=True)
     eq_c_info_id = Column(Integer, nullable=True)
@@ -100,6 +103,17 @@ class SAShipment(Base, SAModelBaseWareHouse):
     st_custom_9 = Column(String, nullable=True)
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
+    mod_created_pt_dt = Column(DateTime(timezone=True), nullable=True)
+    quote_id = Column(String, nullable=True)
+    quote_note = Column(String, nullable=True)
+    del_appt_time = Column(String, nullable=True)
+    # line = Column(String, nullable=True)
+    # type = Column(String, nullable=True)
+    # fkequipmentleasetype = Column(String, nullable=True)
+    # chasis_1 = Column(String, nullable=True)
+    # chasis_2 = Column(String, nullable=True)
+    # chasis_3 = Column(String, nullable=True)
+    # chasis_4 = Column(String, nullable=True)
 
     @classmethod
     def find_by_hash(cls, db_session: Session, hash: str) -> int:
@@ -114,10 +128,11 @@ class SAShipment(Base, SAModelBaseWareHouse):
 
     events = relationship("SAEvent", back_populates="shipment")
 
-class SATemplate(Base, SAModelBaseWareHouse):
+class SATemplate(Base):
     __tablename__ = "templates"
 
     ds_id = Column(Integer, nullable=False)
+    ds_id = Column(BigInteger, primary_key=True, unique=True, nullable=False)
     ds_status = Column(String, nullable=True)
     template_id = Column(Integer, nullable=True)
     ds_status_text = Column(String, nullable=True)
@@ -151,9 +166,11 @@ class SATemplate(Base, SAModelBaseWareHouse):
     del_pk_time = Column(Time, nullable=True)
     ds_origin_id = Column(Integer, nullable=True)
     org_name = Column(String, nullable=True)
+    org_city = Column(String, nullable=True)
     org_zip = Column(String, nullable=True)
     ds_findest_id = Column(Integer, nullable=True)
     destination_name = Column(String, nullable=True)
+    destination_city = Column(String, nullable=True)
     destinantion_zip = Column(String, nullable=True)
     TmpType = Column(String, nullable=True)
     eq_c_info_id = Column(Integer, nullable=True)
@@ -169,6 +186,10 @@ class SATemplate(Base, SAModelBaseWareHouse):
     st_custom_9 = Column(String, nullable=True)
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
+    mod_created_pt_dt = Column(DateTime(timezone=True), nullable=True)
+    quote_id = Column(String, nullable=True)
+    quote_note = Column(String, nullable=True)
+    del_appt_time = Column(String, nullable=True)
 
 class SAEvent(Base, SAModelBaseWareHouse):
     __tablename__ = "events"
@@ -180,6 +201,7 @@ class SAEvent(Base, SAModelBaseWareHouse):
     location_zip = Column(String, nullable=True)
     de_ship_seq = Column(Integer, nullable=True)
     de_conf = Column(String, nullable=True)
+    de_routable = Column(String, nullable=True)
     de_driver = Column(Integer, nullable=True)
     carrier_id = Column(Integer, nullable=True)
     de_appointment = Column(DateTime, nullable=True)
@@ -265,3 +287,81 @@ class SADrivers(Base, SAModelBaseWareHouse):
     name = Column(String, nullable=True)
     status = Column(String, nullable=True)
     fleet = Column(String, nullable=True)
+
+
+class SAItems(Base, SAModelBaseWareHouse):
+    __tablename__ = "items"
+
+    sk_id_shipment_fk = Column(BigInteger, nullable=False)
+    ds_id = Column(Integer, nullable=False)
+    di_item_id = Column(Integer, nullable=False)
+    amount_type = Column(Integer, nullable=True)
+    name = Column(String, nullable=True)
+    rate_code_name = Column(String, nullable=True)
+    di_description = Column(String, nullable=True)
+    di_our_itemamt = Column(Float, nullable=True)
+    di_pay_itemamt = Column(Float, nullable=True)
+    di_quantity = Column(String, nullable=True)
+    last_rated_by = Column(String, nullable=True)
+    tag_list = Column(String, nullable=True)
+    note = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class SACustomFields(Base, SAModelBaseWareHouse):
+    __tablename__ = "shipments_custom_fields"
+
+    ds_id = Column(Integer, nullable=False)
+    ds_status = Column(String, nullable=True)
+    ds_custom_1 = Column(String, nullable=True)
+    ds_custom_2 = Column(String, nullable=True)
+    ds_custom_3 = Column(String, nullable=True)
+    ds_custom_4 = Column(String, nullable=True)
+    ds_custom_5 = Column(String, nullable=True)
+    ds_custom_6 = Column(String, nullable=True)
+    ds_custom_7 = Column(String, nullable=True)
+    ds_custom_8 = Column(String, nullable=True)
+    ds_custom_9 = Column(String, nullable=True)
+    ds_custom_10 = Column(String, nullable=True)
+    client_custom_1 = Column(String, nullable=True)
+    client_custom_2 = Column(String, nullable=True)
+    client_custom_3 = Column(String, nullable=True)
+    client_custom_4 = Column(String, nullable=True)
+    client_custom_5 = Column(String, nullable=True)
+    client_custom_6 = Column(String, nullable=True)
+    client_custom_7 = Column(String, nullable=True)
+    client_custom_8 = Column(String, nullable=True)
+    client_custom_9 = Column(String, nullable=True)
+    client_custom_10 = Column(String, nullable=True)
+    origin_custom_1 = Column(String, nullable=True)
+    origin_custom_2 = Column(String, nullable=True)
+    origin_custom_3 = Column(String, nullable=True)
+    origin_custom_4 = Column(String, nullable=True)
+    origin_custom_5 = Column(String, nullable=True)
+    origin_custom_6 = Column(String, nullable=True)
+    origin_custom_7 = Column(String, nullable=True)
+    origin_custom_8 = Column(String, nullable=True)
+    origin_custom_9 = Column(String, nullable=True)
+    origin_custom_10 = Column(String, nullable=True)
+    destination_custom_1 = Column(String, nullable=True)
+    destination_custom_2 = Column(String, nullable=True)
+    destination_custom_3 = Column(String, nullable=True)
+    destination_custom_4 = Column(String, nullable=True)
+    destination_custom_5 = Column(String, nullable=True)
+    destination_custom_6 = Column(String, nullable=True)
+    destination_custom_7 = Column(String, nullable=True)
+    destination_custom_8 = Column(String, nullable=True)
+    destination_custom_9 = Column(String, nullable=True)
+    destination_custom_10 = Column(String, nullable=True)
+    sk_id_shipment_fk = Column(BigInteger, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    carrier_pay = Column(Float, nullable=True)
+
+
+class SAShipmentEvent(Base, SAModelBaseWareHouse):
+    __tablename__ = "shipments_events"
+
+    sk_shipment_id = Column(BigInteger, nullable= False)
+    sk_event_id = Column(BigInteger, nullable=False)
+    sequence_event_id = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)

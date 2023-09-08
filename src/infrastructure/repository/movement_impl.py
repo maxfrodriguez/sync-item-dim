@@ -4,12 +4,14 @@ from typing import List
 from src.domain.entities.shipment import Shipment
 from src.domain.repository.movement_abc import MovementRepositoryABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
+from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
 from src.infrastructure.data_access.alchemy.sa_session_impl import get_sa_session
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAMovement, SAMovementPart
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
 
 
 class MovementImpl(MovementRepositoryABC):
+    
     async def save_movements(self, shipment: Shipment) -> bool:
         success: bool = False
 

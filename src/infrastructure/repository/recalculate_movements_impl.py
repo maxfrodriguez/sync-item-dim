@@ -12,9 +12,11 @@ class RecalculateMovementsImpl(RecalculateMovementsRepositoryABC):
     def __init__(self, stage) -> None:
         self.__enviroment: ENVIRONMENT = stage
         self.eg_client: EventGridImpl = None
+        self.__credential: str= "EVENT-GRID-ACCESS-KEY-CALC-MOVEMENTS"
+        self.__endpoint: str= "EVENT-GRID-ENDPOINT-CALC-MOVEMENTS"
 
     async def __aenter__(self) -> Self:
-        async with EventGridImpl(self.__enviroment) as client:
+        async with EventGridImpl(self.__enviroment, self.__credential, self.__endpoint) as client:
             self.eg_client = client
 
         return self

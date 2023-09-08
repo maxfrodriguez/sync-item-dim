@@ -13,6 +13,7 @@ class Event:
     location_zip: int
     de_ship_seq: int
     de_conf: str
+    de_routable: str
     de_driver: int = None
     carrier_id: int = None
     de_appointment: datetime = None

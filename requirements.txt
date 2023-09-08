@@ -23,6 +23,7 @@ azure-functions==1.14.0
 azure-identity==1.12.0
 azure-keyvault-secrets==4.7.0
 azure-storage-blob==12.16.0
+azure-servicebus
 certifi==2022.6.15
 cffi==1.15.1
 charset-normalizer==2.1.0
@@ -52,6 +53,7 @@ numpy==1.24.2
 ordered-set==4.1.0
 orderedmultidict==1.0.1
 orjson==3.8.11
+pandas
 packaging==23.0
 portalocker==2.5.1
 psycopg2-binary==2.9.6

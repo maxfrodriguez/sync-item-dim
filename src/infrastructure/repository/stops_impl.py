@@ -48,10 +48,7 @@ class StopsImpl(StopsRepositoryABC):
         # if rows is empty, raise the exeption to close the process because we need to loggin just in application layer
         assert rows, f"did't not found stops to sync at {datetime.now()}"
 
-        # declare a set list to store the RateConfShipment objects
         unique_event = set()
-        # create a list of rateconf_shipment objects
-        # bulk_shipments : List[SAShipment] = []
         bulk_stops: List[SAStops] = []
         event_ids = ", ".join(f"'{stop['pt_event_id']}'" for stop in rows)
 
@@ -69,17 +66,11 @@ class StopsImpl(StopsRepositoryABC):
         if next_id is None:
             next_id = 0
 
-        # read shipments_query one by one
         for row_query in rows:
-            # create a KeyRateConfShipment object to store the data from the shipment
-            # unique_key_shipment = row_query["tmp"]
             stop_hash = deep_hash(row_query)
             unique_key_event = int(row_query["pt_event_id"])
 
-            # # validate if the unique_rateconf_key is not in the set list to avoid duplicates of the same RateConfShipment
-            # if unique_key_shipment not in unique_shipment:
             if unique_key_event not in unique_event:
-                # add the shipment_obj to the set list
                 unique_event.add(unique_key_event)
 
                 current_shipment, current_event = next(

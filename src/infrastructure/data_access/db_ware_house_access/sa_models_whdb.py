@@ -371,7 +371,7 @@ class SAShipmentEvent(Base, SAModelBaseWareHouse):
 class SAFactShipment(Base):
     __tablename__ = "fact_shipments"
 
-    ds_id = Column(Integer, nullable=False)
+    ds_id = Column(Integer, nullable=False, primary_key=True,unique=True)
     ds_status = Column(String, nullable=True)
     template_id = Column(Integer, nullable=True)
     ds_status_text = Column(String, nullable=True)
@@ -436,7 +436,7 @@ class SAFactShipment(Base):
 class SAFactEvent(Base):
     __tablename__ = "fact_events"
 
-    de_id = Column(Integer, nullable=False)
+    de_id = Column(Integer,  nullable=False, primary_key=True,unique=True)
     de_type = Column(String, nullable=True)
     location_id = Column(Integer, nullable=True)
     location_name = Column(String, nullable=True)
@@ -456,4 +456,4 @@ class SAFactEvent(Base):
     created_at = Column(DateTime(timezone=True), nullable=False)
 
     shipment_id = Column(Integer, ForeignKey("fact_shipments.ds_id", ondelete="CASCADE"), nullable=True)
-    shipment = relationship("SAFactShipment", uselist=False, back_populates="events")
+    # shipment = relationship("SAFactShipment", uselist=False, back_populates="fact_events")

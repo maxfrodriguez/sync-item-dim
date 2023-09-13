@@ -112,33 +112,37 @@ class AlchemyBase(metaclass=Singleton):
 
     def bulk_copy(self, objects: List[Any]) -> None:
         try:
-            # self._session.add_all(objects)
             with self._session.begin():
                 self._session.add_all(objects)
+                self._session.flush()
+                self._session.commit()
+
         except Exception as e:
             logging.error(f"Error: {e} executing the bulk copy at: {datetime.now()}")
     
     def save_object(self, object: Any) -> None:
         try:
             self._session.add(object)
+            self._session.flush()
+            self._session.commit()
+
         except Exception:
             logging.error(f"Error executing the bulk copy at: {datetime.now()}")
             
 
-    def upsert_data(self, model_type: Type, model_instances: List[Any], unique_column: str) -> None:
+    def upsert_data(self, model_instances: List[Any]) -> None:
         try:
-            for model_instance in model_instances:
-                existing_data = self._session.query(model_type).filter_by(**{unique_column: getattr(model_instance, unique_column)}).first()
-                if existing_data:
-                    self._session.query(model_type).filter_by(**{unique_column: getattr(model_instance, unique_column)}).update(model_instance)
-                else:
-                    self._session.add(model_instance)
+            for object in model_instances:
+                self._session.merge(object)
 
+            self._session.flush()
             self._session.commit()
+
+            return model_instances
 
         except Exception as e:
             self._session.rollback()
-            logging.error(f"Integrity error: {e}")
+            logging.error(f"upsert_data error: {e}")
 
 
     async def execute(self, query: Select) -> Any:

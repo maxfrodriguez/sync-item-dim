@@ -5,12 +5,14 @@ from typing import Any, Dict, Generator, List
 from src.domain.entities.event import Event
 from src.domain.entities.shipment import Shipment
 from src.domain.repository.events_abc import EventRepositoryABC
+from src.infrastructure.adapters.dim_event_adapter import DimEventAdapter
+from src.infrastructure.adapters.fact_event_adapter import FactEventAdapter
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
 from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import COMPLETE_EVENT_QUERY, NEXT_ID_WH, WAREHOUSE_EVENTS
-from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAEvent, SAShipmentEvent
+from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAEvent, SAFactEvent, SAShipmentEvent
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
 from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
 from src.infrastructure.repository.recalculate_movements_impl import RecalculateMovementsImpl
@@ -45,9 +47,10 @@ class EventImpl(EventRepositoryABC):
 
         return rows 
 
-    async def bulk_save_events(self, bulk_of_events: List[SAEvent]) -> None:
+    async def bulk_save_events(self, bulk_of_events: List[SAEvent], bulk_of_fact_events: List[SAFactEvent]) -> None:
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_of_events)
+            wh_client.upsert_data(bulk_of_fact_events)
     
     async def bulk_save_event_shipments(self, bulk_of_event_ships: List[SAShipmentEvent]) -> None:
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
@@ -62,19 +65,15 @@ class EventImpl(EventRepositoryABC):
                 COMPLETE_EVENT_QUERY.format(ids), result_type=dict
             )
 
-        # if rows is empty, raise the exeption to close the process because we need to loggin just in application layer
         assert rows, f"don't not found shipments to sync at {datetime.now()}"
 
-        # declare a set list to store the RateConfShipment objects
         unique_events_ids = set()
-        # create a list of rateconf_shipment objects
         bulk_events: List[SAEvent] = []
         bulk_of_ship_events : List[SAEvent] = []
         shipments_id_list = []
 
         event_ids = ", ".join(f"'{event['de_id']}'" for event in rows)
 
-        # New logic to CAST Dates in Events
         rows = await self.validate_event_dates(rows=rows)
 
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
@@ -99,6 +98,7 @@ class EventImpl(EventRepositoryABC):
             event_hash = deep_hash(row_query)
             shipment_id = row_query["ds_id"]
             event_id = row_query["de_id"]
+            sa_fact_events: List[SAFactEvent] = []
 
             # # validate if the unique_rateconf_key is not in the set list to avoid duplicates of the same RateConfShipment
             # if shipment_id not in unique_shipment:
@@ -131,15 +131,25 @@ class EventImpl(EventRepositoryABC):
                         continue
 
                     row_query.pop("ds_id", None)
+
                     # New logic for appointment/arrival date
-                    new_event: SAEvent = SAEvent(**row_query)
-                    new_event.shipment_id = current_shipment.id
-                    new_event.id = next_id
-                    new_event.hash = event_hash
-                    new_event.created_at = datetime.utcnow().replace(second=0, microsecond=0)
+                    new_event: DimEventAdapter = DimEventAdapter(
+                        event_hash=event_hash,
+                        next_id=next_id,
+                        shipment_id=current_shipment.id,
+                        **row_query
+                    )
+
+                    sa_fact_events.append(FactEventAdapter(
+                        event_hash=event_hash,
+                        shipment_id=current_shipment.id,
+                        **row_query
+                    ))
+                    
                     current_event = Event(**row_query)
                     current_event.id = next_id
                     current_shipment.events.append(current_event)
+
                     # Sends shipment information to recalculate movements
                     current_shipment.has_changed_events = True
 
@@ -160,5 +170,5 @@ class EventImpl(EventRepositoryABC):
                 else:
                     logging.warning(f"Did't find the shipment: {event_id}")
             
-        await self.bulk_save_events(bulk_events)
+        await self.bulk_save_events(bulk_events, sa_fact_events)
         await self.bulk_save_event_shipments(bulk_of_ship_events)

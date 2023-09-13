@@ -430,13 +430,6 @@ class SAFactShipment(Base):
     quote_id = Column(String, nullable=True)
     quote_note = Column(String, nullable=True)
     del_appt_time = Column(String, nullable=True)
-    # line = Column(String, nullable=True)
-    # type = Column(String, nullable=True)
-    # fkequipmentleasetype = Column(String, nullable=True)
-    # chasis_1 = Column(String, nullable=True)
-    # chasis_2 = Column(String, nullable=True)
-    # chasis_3 = Column(String, nullable=True)
-    # chasis_4 = Column(String, nullable=True)
 
 
 # Main events

@@ -73,12 +73,10 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
     async def bulk_save(
         self,
-        bulk_of_shipments: List[SAShipment],
-        bulk_of_templates: List[SATemplate]
+        bulk_of_shipments: List[SAShipment]
     ) -> None:
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_of_shipments)
-            wh_client.bulk_copy(bulk_of_templates)
     
     async def emit_to_eg_street_turn(self, eg_shipments: List[Shipment]):
         if len(eg_shipments) > 0:
@@ -360,7 +358,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 bulk_of_custom_fields.append(new_sa_custom_fields)
 
         # Save Shipments and Templates
-        await self.bulk_save(bulk_shipments, bulk_templates)
+        await self.bulk_save(bulk_shipments)
 
         # Save Templates, Items and Custom Fields
         await template_client.save_templates(templates_list)

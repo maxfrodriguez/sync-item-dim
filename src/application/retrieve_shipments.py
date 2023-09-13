@@ -7,6 +7,6 @@ from src.infrastructure.repository.shipment_impl import ShipmentImpl
 
 async def retrieve_shipments_list() -> List[Shipment]:
     shipment_client = ShipmentImpl()
-    shipments = await shipment_client.retrieve_shipment_list()
+    shipments = await shipment_client.retrieve_shipment_list(query_to_execute=CLOSED_MODLOGS_QUERY)
 
     return shipments

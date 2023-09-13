@@ -8,6 +8,8 @@ from src.domain.entities.customer import Customer
 
 from src.domain.entities.shipment import Event, Shipment
 from src.domain.repository.shipment_abc import ShipmentRepositoryABC
+from src.infrastructure.adapters.dim_shipment_adapter import DimShipmentAdapter
+from src.infrastructure.adapters.fact_shipment_adapter import FactShipmentAdapter
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
 from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
@@ -28,6 +30,7 @@ from src.infrastructure.data_access.db_profit_tools_access.queries.queries impor
 )
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import (
     SACustomFields,
+    SAFactShipment,
     SAItems,
     SALoaderLog,
     SAShipment,
@@ -74,11 +77,12 @@ class ShipmentImpl(ShipmentRepositoryABC):
     async def bulk_save(
         self,
         bulk_of_shipments: List[SAShipment],
-        bulk_of_templates: List[SATemplate]
+        bulk_of_fact_shipments: List[SAFactShipment],
     ) -> None:
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(bulk_of_shipments)
-            wh_client.bulk_copy(bulk_of_templates)
+            results = wh_client.upsert_data(model_instances=bulk_of_fact_shipments)
+            print(results)
     
     async def emit_to_eg_street_turn(self, eg_shipments: List[Shipment]):
         if len(eg_shipments) > 0:
@@ -225,6 +229,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
         bulk_shipments: List[SAShipment] = []
         bulk_templates: List[SATemplate] = []
         bulk_of_custom_fields: List[SACustomFields] = []
+        sa_fact_shipments: List[SAFactShipment] = []
 
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("shipments"))
@@ -303,13 +308,13 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
                     # Create a new shipment object with the next id
                     del row_query["RateCodename"]
-                    new_shipment: SAShipment = SAShipment(**row_query)
-                    new_shipment.template_id = get_template_id(value=new_shipment.template_id)
-                    new_shipment.id = next_id
-                    new_shipment.hash = shipment_hash
-                    new_shipment.created_at = datetime.utcnow().replace(second=0, microsecond=0)
+                    new_shipment: DimShipmentAdapter = DimShipmentAdapter(
+                        shipment_hash=shipment_hash, next_id=next_id, **row_query
+                    )
+                    
                     shipments_id_list.append(new_shipment.ds_id)
-
+    
+                    sa_fact_shipments.append(FactShipmentAdapter(shipment_hash=shipment_hash, **row_query))
                     #Add current shipment, customer and template info
                     new_customer: Customer = Customer(
                         tmp=new_shipment.ds_id,
@@ -360,7 +365,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
                 bulk_of_custom_fields.append(new_sa_custom_fields)
 
         # Save Shipments and Templates
-        await self.bulk_save(bulk_shipments, bulk_templates)
+        await self.bulk_save(bulk_shipments, sa_fact_shipments)
 
         # Save Templates, Items and Custom Fields
         await template_client.save_templates(templates_list)

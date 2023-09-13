@@ -3,7 +3,7 @@ from asyncio import gather
 from contextlib import asynccontextmanager
 from datetime import datetime
 from json import loads
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Type, Union
 from urllib.parse import quote
 
 from async_lru import alru_cache
@@ -112,17 +112,38 @@ class AlchemyBase(metaclass=Singleton):
 
     def bulk_copy(self, objects: List[Any]) -> None:
         try:
-            # self._session.add_all(objects)
             with self._session.begin():
                 self._session.add_all(objects)
+                self._session.flush()
+                self._session.commit()
+
         except Exception as e:
             logging.error(f"Error: {e} executing the bulk copy at: {datetime.now()}")
     
     def save_object(self, object: Any) -> None:
         try:
             self._session.add(object)
+            self._session.flush()
+            self._session.commit()
+
         except Exception:
             logging.error(f"Error executing the bulk copy at: {datetime.now()}")
+            
+
+    def upsert_data(self, model_instances: List[Any]) -> None:
+        try:
+            for object in model_instances:
+                self._session.merge(object)
+
+            self._session.flush()
+            self._session.commit()
+
+            return model_instances
+
+        except Exception as e:
+            self._session.rollback()
+            logging.error(f"upsert_data error: {e}")
+
 
     async def execute(self, query: Select) -> Any:
         try:

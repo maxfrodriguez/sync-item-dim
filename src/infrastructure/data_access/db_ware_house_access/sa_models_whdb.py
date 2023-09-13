@@ -368,7 +368,7 @@ class SAShipmentEvent(Base, SAModelBaseWareHouse):
 
 
 # Main Shipment Table
-class SAShipment(Base):
+class SAFactShipment(Base):
     __tablename__ = "fact_shipments"
 
     ds_id = Column(Integer, nullable=False)
@@ -440,7 +440,7 @@ class SAShipment(Base):
 
 
 # Main events
-class SAEvent(Base):
+class SAFactEvent(Base):
     __tablename__ = "fact_events"
 
     de_id = Column(Integer, nullable=False)
@@ -462,5 +462,5 @@ class SAEvent(Base):
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
 
-    shipment_id = Column(Integer, ForeignKey("shipments.ds_id", ondelete="CASCADE"), nullable=True)
-    shipment = relationship("SAShipment", uselist=False, back_populates="events")
+    shipment_id = Column(Integer, ForeignKey("fact_shipments.ds_id", ondelete="CASCADE"), nullable=True)
+    shipment = relationship("SAFactShipment", uselist=False, back_populates="events")

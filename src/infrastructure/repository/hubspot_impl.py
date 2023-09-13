@@ -36,6 +36,9 @@ class HubspotImpl(HubspotABC):
                 
                 if customer_hash:
                     customer_list = list(customer_hash)
-                    await self._sb_client.send_message(data=customer_list)
+                    customers_by_5_elements = [customer_list[i:i + 5] for i in range(0, len(customer_list), 5)]
+                            
+                    for element in customers_by_5_elements:
+                        await self._sb_client.send_message(data=element)
         except Exception as e:
             logging.error(f"Error in send_customer_sb: {e}")

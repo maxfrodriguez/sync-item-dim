@@ -4,7 +4,7 @@ from src.domain.entities.shipment import Shipment
 from src.domain.repository.item_abc import ItemABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import ITEMS_QUERY
-from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAItems
+from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAFactItems, SAItems
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
 from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere
@@ -23,6 +23,7 @@ class ItemImpl(ItemABC):
         return raw
 
 
-    async def save_items(self, item_sa_list: List[SAItems]):
+    async def save_items(self, item_sa_list: List[SAItems], sa_fact_items: List[SAFactItems]):
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             wh_client.bulk_copy(item_sa_list)
+            wh_client.upsert_bulk_data(sa_fact_items)

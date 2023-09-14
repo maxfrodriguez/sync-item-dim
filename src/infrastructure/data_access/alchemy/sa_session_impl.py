@@ -7,7 +7,7 @@ from typing import Any, Dict, Generator, List, Optional, Type, Union
 from urllib.parse import quote
 
 from async_lru import alru_cache
-from sqlalchemy import Select, create_engine, text
+from sqlalchemy import Select, create_engine, delete, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -138,11 +138,26 @@ class AlchemyBase(metaclass=Singleton):
             self._session.flush()
             self._session.commit()
 
-            return model_instances
 
         except Exception as e:
             self._session.rollback()
             logging.error(f"upsert_data error: {e}")
+
+    def upsert_bulk_data(self, model_instances: List[Any]) -> None:
+        try:
+            for object in model_instances:
+                self._session.execute(delete(type(object)).where(type(object).ds_id == object.ds_id))
+            
+            for object in model_instances:
+                self._session.merge(object)
+
+            self._session.flush()
+            self._session.commit()
+
+
+        except Exception as e:
+            self._session.rollback()
+            logging.error(f"upsert_bulk_data error: {e}")
 
 
     async def execute(self, query: Select) -> Any:

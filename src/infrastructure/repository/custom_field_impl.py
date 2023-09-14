@@ -4,7 +4,7 @@ from src.domain.entities.shipment import Shipment
 from src.domain.repository.custom_field_abc import CustomFieldABC
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import SHIPMENTS_CUSTOM_FIELDS_QUERY
-from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SACustomFields
+from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SACustomFields, SAFactCustomFields
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
 from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere

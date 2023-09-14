@@ -454,9 +454,7 @@ class SAFactEvent(Base):
     driver_name = Column(String, nullable=True)
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
-
     shipment_id = Column(Integer, ForeignKey("fact_shipments.ds_id", ondelete="CASCADE"), nullable=True)
-    # shipment = relationship("SAFactShipment", uselist=False, back_populates="fact_events")
 
 
 # Main Items
@@ -477,3 +475,53 @@ class SAFactItems(Base):
     note = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
     id = Column(String, primary_key=True, unique=True, nullable=False)
+
+
+# Main Custom Fields
+class SAFactCustomFields(Base):
+    __tablename__ = "fact_custom_fields"
+
+    ds_id = Column(Integer, primary_key=True, unique=True, nullable=False)
+    ds_status = Column(String, nullable=True)
+    ds_custom_1 = Column(String, nullable=True)
+    ds_custom_2 = Column(String, nullable=True)
+    ds_custom_3 = Column(String, nullable=True)
+    ds_custom_4 = Column(String, nullable=True)
+    ds_custom_5 = Column(String, nullable=True)
+    ds_custom_6 = Column(String, nullable=True)
+    ds_custom_7 = Column(String, nullable=True)
+    ds_custom_8 = Column(String, nullable=True)
+    ds_custom_9 = Column(String, nullable=True)
+    ds_custom_10 = Column(String, nullable=True)
+    client_custom_1 = Column(String, nullable=True)
+    client_custom_2 = Column(String, nullable=True)
+    client_custom_3 = Column(String, nullable=True)
+    client_custom_4 = Column(String, nullable=True)
+    client_custom_5 = Column(String, nullable=True)
+    client_custom_6 = Column(String, nullable=True)
+    client_custom_7 = Column(String, nullable=True)
+    client_custom_8 = Column(String, nullable=True)
+    client_custom_9 = Column(String, nullable=True)
+    client_custom_10 = Column(String, nullable=True)
+    origin_custom_1 = Column(String, nullable=True)
+    origin_custom_2 = Column(String, nullable=True)
+    origin_custom_3 = Column(String, nullable=True)
+    origin_custom_4 = Column(String, nullable=True)
+    origin_custom_5 = Column(String, nullable=True)
+    origin_custom_6 = Column(String, nullable=True)
+    origin_custom_7 = Column(String, nullable=True)
+    origin_custom_8 = Column(String, nullable=True)
+    origin_custom_9 = Column(String, nullable=True)
+    origin_custom_10 = Column(String, nullable=True)
+    destination_custom_1 = Column(String, nullable=True)
+    destination_custom_2 = Column(String, nullable=True)
+    destination_custom_3 = Column(String, nullable=True)
+    destination_custom_4 = Column(String, nullable=True)
+    destination_custom_5 = Column(String, nullable=True)
+    destination_custom_6 = Column(String, nullable=True)
+    destination_custom_7 = Column(String, nullable=True)
+    destination_custom_8 = Column(String, nullable=True)
+    destination_custom_9 = Column(String, nullable=True)
+    destination_custom_10 = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    carrier_pay = Column(Float, nullable=True)

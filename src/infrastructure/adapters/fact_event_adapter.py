@@ -1,5 +1,5 @@
 from datetime import datetime
-from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAFactEvent
+from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SAEvent, SAFactEvent
 
 
 class FactEventAdapter(SAFactEvent):

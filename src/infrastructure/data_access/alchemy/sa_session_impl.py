@@ -159,6 +159,23 @@ class AlchemyBase(metaclass=Singleton):
             self._session.rollback()
             logging.error(f"upsert_bulk_data error: {e}")
 
+    
+    def upsert_bulk_events(self, model_instances: List[Any]) -> None:
+        try:
+            for object in model_instances:
+                self._session.execute(delete(type(object)).where(type(object).shipment_id == object.shipment_id))
+            
+            for object in model_instances:
+                self._session.merge(object)
+
+            self._session.flush()
+            self._session.commit()
+
+
+        except Exception as e:
+            self._session.rollback()
+            logging.error(f"upsert_bulk_data error: {e}")
+
 
     async def execute(self, query: Select) -> Any:
         try:

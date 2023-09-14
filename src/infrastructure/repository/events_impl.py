@@ -134,15 +134,15 @@ class EventImpl(EventRepositoryABC):
 
                     # New logic for appointment/arrival date
                     new_event: DimEventAdapter = DimEventAdapter(
-                        event_hash=event_hash,
+                        hash=event_hash,
                         next_id=next_id,
                         shipment_id=current_shipment.id,
                         **row_query
                     )
 
                     sa_fact_events.append(FactEventAdapter(
-                        event_hash=event_hash,
-                        shipment_id=current_shipment.id,
+                        hash=event_hash,
+                        shipment_id=current_shipment.ds_id,
                         **row_query
                     ))
                     

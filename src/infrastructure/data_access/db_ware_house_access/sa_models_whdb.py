@@ -457,3 +457,23 @@ class SAFactEvent(Base):
 
     shipment_id = Column(Integer, ForeignKey("fact_shipments.ds_id", ondelete="CASCADE"), nullable=True)
     # shipment = relationship("SAFactShipment", uselist=False, back_populates="fact_events")
+
+
+# Main Items
+class SAFactItems(Base):
+    __tablename__ = "fact_items"
+
+    ds_id = Column(Integer,nullable=False)
+    di_item_id = Column(Integer, nullable=False)
+    amount_type = Column(Integer, nullable=True)
+    name = Column(String, nullable=True)
+    rate_code_name = Column(String, nullable=True)
+    di_description = Column(String, nullable=True)
+    di_our_itemamt = Column(Float, nullable=True)
+    di_pay_itemamt = Column(Float, nullable=True)
+    di_quantity = Column(String, nullable=True)
+    last_rated_by = Column(String, nullable=True)
+    tag_list = Column(String, nullable=True)
+    note = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    id = Column(String, primary_key=True, unique=True, nullable=False)

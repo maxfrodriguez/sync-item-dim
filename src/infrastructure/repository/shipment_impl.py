@@ -1,5 +1,5 @@
-import re
 import logging
+import uuid
 from datetime import datetime, timedelta
 import pandas as pd
 from typing import Any, Dict, Generator, List, Literal
@@ -8,7 +8,9 @@ from src.domain.entities.customer import Customer
 
 from src.domain.entities.shipment import Event, Shipment
 from src.domain.repository.shipment_abc import ShipmentRepositoryABC
+from src.infrastructure.adapters.dim_item_adapter import DimItemAdapter
 from src.infrastructure.adapters.dim_shipment_adapter import DimShipmentAdapter
+from src.infrastructure.adapters.fact_item_adapter import FactItemAdapter
 from src.infrastructure.adapters.fact_shipment_adapter import FactShipmentAdapter
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
@@ -30,6 +32,7 @@ from src.infrastructure.data_access.db_profit_tools_access.queries.queries impor
 )
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import (
     SACustomFields,
+    SAFactItems,
     SAFactShipment,
     SAItems,
     SALoaderLog,
@@ -230,6 +233,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
         bulk_templates: List[SATemplate] = []
         bulk_of_custom_fields: List[SACustomFields] = []
         sa_fact_shipments: List[SAFactShipment] = []
+        sa_fact_items: List[SAFactItems] = []
 
         async with WareHouseDbConnector(stage=ENVIRONMENT.PRD) as wh_client:
             row_next_id = wh_client.execute_select(NEXT_ID_WH.format("shipments"))
@@ -337,11 +341,10 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
                     # Saves item_list per shipment
                     for item in list_of_items:
-                        new_sa_item: SAItems = SAItems(**item)
-                        new_sa_item.id = next_id_item
-                        new_sa_item.sk_id_shipment_fk = next_id
-                        new_sa_item.created_at = datetime.utcnow().replace(second=0, microsecond=0)
+                        new_sa_item: DimItemAdapter = DimItemAdapter(next_id=next_id_item, **item)
+                        new_sa_fact_item: FactItemAdapter = FactItemAdapter(gui_id=str(uuid.uuid4()),**item)
                         items_list.append(new_sa_item)
+                        sa_fact_items.append(new_sa_fact_item)
                         next_id_item += 1
 
                     # add to the list will use in the bulk copy
@@ -369,7 +372,7 @@ class ShipmentImpl(ShipmentRepositoryABC):
 
         # Save Templates, Items and Custom Fields
         await template_client.save_templates(templates_list)
-        await item_client.save_items(items_list)
+        await item_client.save_items(items_list, sa_fact_items)
         await custom_field_client.save_custom_fields(bulk_of_custom_fields)
 
         # Emit information to EG Street Turns

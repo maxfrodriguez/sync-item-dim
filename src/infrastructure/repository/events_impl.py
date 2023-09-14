@@ -1,4 +1,5 @@
 import logging
+import uuid
 from datetime import datetime
 from typing import Any, Dict, Generator, List
 
@@ -59,7 +60,7 @@ class EventImpl(EventRepositoryABC):
     async def save_and_sync_events(self, list_of_shipments: List[Shipment]):
         events_hash_list = {}
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_of_shipments)
-
+        unique_events_ids = set()
         async with PTSQLAnywhere(stage=ENVIRONMENT.PRD) as sybase_client:
             rows: Generator[Record, None, None] = sybase_client.SELECT(
                 COMPLETE_EVENT_QUERY.format(ids), result_type=dict
@@ -71,6 +72,7 @@ class EventImpl(EventRepositoryABC):
         bulk_events: List[SAEvent] = []
         bulk_of_ship_events : List[SAEvent] = []
         shipments_id_list = []
+        sa_fact_events: List[SAFactEvent] = []
 
         event_ids = ", ".join(f"'{event['de_id']}'" for event in rows)
 
@@ -98,8 +100,6 @@ class EventImpl(EventRepositoryABC):
             event_hash = deep_hash(row_query)
             shipment_id = row_query["ds_id"]
             event_id = row_query["de_id"]
-            sa_fact_events: List[SAFactEvent] = []
-
             # # validate if the unique_rateconf_key is not in the set list to avoid duplicates of the same RateConfShipment
             # if shipment_id not in unique_shipment:
             if event_id not in unique_events_ids:

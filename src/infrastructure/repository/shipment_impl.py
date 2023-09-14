@@ -2,12 +2,12 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 import pandas as pd
-from typing import Any, Dict, Generator, List, Literal
-from src.domain.entities.custom_field import CustomField
+from typing import Any, Dict, Generator, List
 from src.domain.entities.customer import Customer
 
 from src.domain.entities.shipment import Event, Shipment
 from src.domain.repository.shipment_abc import ShipmentRepositoryABC
+from src.infrastructure.adapters.dim_custom_field_adapter import DimCustomFieldAdapter
 from src.infrastructure.adapters.dim_item_adapter import DimItemAdapter
 from src.infrastructure.adapters.dim_shipment_adapter import DimShipmentAdapter
 from src.infrastructure.adapters.fact_item_adapter import FactItemAdapter
@@ -15,19 +15,16 @@ from src.infrastructure.adapters.fact_shipment_adapter import FactShipmentAdapte
 from src.infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.cross_cutting.hasher import deep_hash
 from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
-from src.infrastructure.cross_cutting.shipment_helper import get_quote_id, get_template_id
+from src.infrastructure.cross_cutting.shipment_helper import get_quote_id
 from src.infrastructure.data_access.alchemy.sa_session_impl import get_sa_session
 from src.infrastructure.data_access.db_profit_tools_access.pt_anywhere_client import (
     PTSQLAnywhere,
 )
 from src.infrastructure.data_access.db_profit_tools_access.queries.queries import (
-    COMPLETE_EVENT_QUERY,
-    ITEMS_QUERY,
     MODLOG_QUERY,
     NEXT_ID_WH,
     SHIPMENT_EQUIPMENT_SPLITTED_QUERY,
     SHIPMENT_SPLITTED_QUERY,
-    SHIPMENTS_CUSTOM_FIELDS_QUERY,
     WAREHOUSE_SHIPMENTS,
 )
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import (

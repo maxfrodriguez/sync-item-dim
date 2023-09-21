@@ -514,9 +514,9 @@ LEFT JOIN [DBA].[modlog_ship] md_ds
   ON ds.ds_id = md_ds.ds_id
 LEFT JOIN [DBA].[modlog] md
   ON md.mod_id = md_ds.mod_id
-WHERE md.mod_datetime BETWEEN '2023-09-13 17:45:00' AND '2023-09-13 17:55:00'
+WHERE md.mod_datetime BETWEEN '2023-09-01 00:00:00' AND '2023-09-09 23:59:59'
 -- AND mod_type = 'C'
---WHERE ds.ds_id IN (142282)
+--WHERE ds.ds_id IN (137047, 137048)
 AND ds.ds_status NOT IN ('A')
 GROUP BY ds.ds_id,
   ds.ds_status

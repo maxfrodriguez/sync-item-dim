@@ -112,6 +112,12 @@ class EventImpl(EventRepositoryABC):
 
                 
                 if current_shipment:
+                    sa_fact_events.append(FactEventAdapter(
+                        hash=event_hash,
+                        shipment_id=current_shipment.ds_id,
+                        **row_query
+                    ))
+                    
                     # Validate event hash
                     if (event_hash and event_id in events_hash_list and events_hash_list[event_id]) and str(event_hash) == events_hash_list[event_id]:
                         row_query.pop("ds_id", None)            
@@ -139,12 +145,6 @@ class EventImpl(EventRepositoryABC):
                         shipment_id=current_shipment.id,
                         **row_query
                     )
-
-                    sa_fact_events.append(FactEventAdapter(
-                        hash=event_hash,
-                        shipment_id=current_shipment.ds_id,
-                        **row_query
-                    ))
                     
                     current_event = Event(**row_query)
                     current_event.id = next_id

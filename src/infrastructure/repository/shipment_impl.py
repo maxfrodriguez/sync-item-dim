@@ -295,6 +295,25 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     filtered_shipment = filtered_shipments[0]
                     custom_fields = (list_of_custom_fields[0] if list_of_custom_fields else None)
 
+                    del row_query["RateCodename"]
+                    new_fact_shipment = FactShipmentAdapter(shipment_hash=shipment_hash, **row_query)
+                    sa_fact_shipments.append(new_fact_shipment)
+                    
+                    #Add current shipment, customer and template info
+                    # new_customer: Customer = Customer(
+                    #     tmp=new_fact_shipment.ds_id,
+                    #     template_id=new_fact_shipment.template_id,
+                    #     customer_id=new_fact_shipment.customer_id
+                    # )
+                    # customers_shipments_list.append(new_customer)
+                    
+                    # for item in list_of_items:
+                    #     new_sa_item: DimItemAdapter = DimItemAdapter(next_id=next_id_item, **item)
+                    #     new_sa_fact_item: FactItemAdapter = FactItemAdapter(gui_id=str(uuid.uuid4()),**item)
+                    #     items_list.append(new_sa_item)
+                    #     sa_fact_items.append(new_sa_fact_item)
+                    #     next_id_item += 1
+                        
                     # Compares Hashes
                     if (
                         shipment_hash
@@ -308,14 +327,12 @@ class ShipmentImpl(ShipmentRepositoryABC):
                     eg_shipments.append(filtered_shipment)
 
                     # Create a new shipment object with the next id
-                    del row_query["RateCodename"]
+                    #del row_query["RateCodename"]
                     new_shipment: DimShipmentAdapter = DimShipmentAdapter(
                         shipment_hash=shipment_hash, next_id=next_id, **row_query
                     )
                     
                     shipments_id_list.append(new_shipment.ds_id)
-    
-                    sa_fact_shipments.append(FactShipmentAdapter(shipment_hash=shipment_hash, **row_query))
                     #Add current shipment, customer and template info
                     new_customer: Customer = Customer(
                         tmp=new_shipment.ds_id,

@@ -4,6 +4,7 @@ from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import S
 
 class FactEventAdapter(SAFactEvent):
     def __init__(self, hash: str, shipment_id: int, **kwargs):
+        del kwargs['ds_id']
         self.hash = hash
         self.shipment_id = shipment_id
         super().__init__(**kwargs)

@@ -7,9 +7,6 @@ class FactShipmentAdapter(SAFactShipment):
     def __init__(self, shipment_hash: str ,**kwargs):
         self.shipment_hash = shipment_hash
         super().__init__(**kwargs)
-        self.post_init()
-
-    def post_init(self):
         self.template_id = get_template_id(value=self.template_id)
         self.hash = self.shipment_hash
-        self.created_at = datetime.utcnow().replace(second=0, microsecond=0)
+        self.created_at = datetime.strptime(kwargs.get('mod_created_pt_dt'), '%Y-%m-%d %H:%M:%S.%f')

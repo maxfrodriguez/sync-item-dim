@@ -1,5 +1,7 @@
 import logging
 from typing import List
+from os import getenv
+
 from src.domain.entities.shipment import Shipment
 from src.sync_tmp_events.extract.tmp_repository_abc import TmpRepositoryABC
 from src.sync_tmp_events.load.notification.customer_kpi_notification import CustomerKpiNotifier
@@ -24,7 +26,8 @@ class SyncronizerTmpAndEventsChaged:
             await self.find_next_tmps_chaged()
 
             # sincronize in packs of 100
-            for shipmets_to_sync in self.tmp_repository.next_shipments(pack_size=10):
+            pack_size=getenv(f"PACKAGE_SIZE_TO_SYNC_{self.__stage.name}")
+            for shipmets_to_sync in self.tmp_repository.next_shipments(pack_size=pack_size):
                 self.tmp_repository.complement_with_equipment_info(shipmets_to_sync)
                 shipmets_to_sync = await self.identify_changes(shipmets_to_sync)
                 custom_fields = await self.tmp_repository.get_custom_fields(shipmets_to_sync)
@@ -40,7 +43,17 @@ class SyncronizerTmpAndEventsChaged:
         return await self.sync_information.find_shipments_to_sync(list_shipments)
     
     async def load(self, list_shipments: List[Shipment], custom_fields: List[dict]):
-        return await self.sync_information.load_shipments(list_shipments, custom_fields)
+        shipment_to_sync = await self.sync_information.load_shipments(list_shipments, custom_fields)
+    
+        #get min id from list_shipments.id
+        if shipment_to_sync:
+            lowest_modlog = min(list_shipments, key=lambda x: x.id).id #id get modlog_id
+            highest_modlog = max(list_shipments, key=lambda x: x.id).id #id get modlog_id
+            fact_movements_loaded = len(list_shipments)
+
+        await self.sync_information.save_latest_loader_logs(lowest_modlog, highest_modlog, fact_movements_loaded)
+
+        return shipment_to_sync
 
     async def notify(self, list_shipments: List[Shipment]):
         try:
@@ -56,6 +69,7 @@ class SyncronizerTmpAndEventsChaged:
             notifier_manager.register_notifier(CustomerKpiNotifier)
             notifier_manager.register_notifier(HubSpotNotifier)
 
+            
             await notifier_manager.notify_all_by_pakages(list_shipments, size_pagake=10)
         
         except Exception as e:

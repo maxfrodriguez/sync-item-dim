@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from datetime import datetime
 import logging
 from typing import Any, Dict, List
 from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
@@ -6,7 +7,7 @@ from src.infrastructure.cross_cutting.hasher import deep_hash
 
 
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
-from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SACustomFields, SAFactShipment, SAShipment, SATemplate
+from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SACustomFields, SAFactShipment, SALoaderLog, SAShipment, SATemplate
 
 from src.sync_tmp_events.extract.data.shipment import Shipment
 from src.sync_tmp_events.load.data.dim_shipment_adapter import DimShipmentAdapter
@@ -88,3 +89,20 @@ class SyncShipmentRepository(SyncShipmentRepositoryABC):
             self.wh_repository.bulk_copy(bulk_custom_fields)
 
         return list_shipments_to_notify
+    
+    async def save_latest_loader_logs(
+        self, lowest_modlog: int, highest_modlog: int, fact_movements_loaded: int
+    ) -> None:
+        try:
+            new_modlog: SALoaderLog = SALoaderLog(
+                mod_lowest_version=lowest_modlog,
+                mod_highest_version=highest_modlog,
+                num_fact_movements_loaded=fact_movements_loaded,
+                created_at= datetime.utcnow().replace(second=0, microsecond=0)
+            )
+
+            async with self.wh_repository:
+                self.wh_repository.save_object(new_modlog)
+            
+        except Exception as e:
+            logging.error(f"error in save_latest_loader_logs:{e} at {datetime.now()}")

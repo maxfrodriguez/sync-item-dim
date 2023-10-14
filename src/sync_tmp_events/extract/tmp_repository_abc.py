@@ -10,5 +10,5 @@ class TmpRepositoryABC(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def next_shipments(self, pack_size=100):
+    def next_shipments(self, pack_size):
         raise NotImplementedError

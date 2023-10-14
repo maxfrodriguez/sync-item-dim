@@ -29,7 +29,12 @@ class TmpRepository(TmpRepositoryABC):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         self.pt_repository.__exit__(exc_type, exc_val, exc_tb)
 
-    def next_shipments(self, pack_size=100):
+    def next_shipments(self, pack_size=25):
+        if not pack_size:
+            pack_size = 25
+
+        pack_size = int(pack_size) if pack_size else 25
+
         for i in range(0, len(self.tmps_to_sync), pack_size):
             yield self.tmps_to_sync[i:i + pack_size]
 

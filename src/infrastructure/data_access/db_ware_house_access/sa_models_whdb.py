@@ -41,8 +41,15 @@ class SALoaderLog(Base, SAModelBaseWareHouse):
     created_at = Column(DateTime(timezone=True), nullable=False)
 
     @classmethod
-    def get_highest_version(cls, db_session: Session) -> Self | None:
-        return db_session.query(cls).order_by(desc(cls.mod_highest_version)).first()
+    async def get_highest_version(cls, orm_client: AlchemyBase) -> Self | None:
+        try:
+            #return await db_session.query(cls).order_by(desc(cls.mod_highest_version)).first()
+            statement = select(cls).order_by(desc(cls.mod_highest_version))#.limit(1)
+            result = await orm_client.execute_statement(query=statement)
+            instance: Self | None = result
+            return instance
+        except Exception as e:
+            raise e
 
 
 class SAShipment(Base, SAModelBaseWareHouse):
@@ -430,6 +437,7 @@ class SAFactShipment(Base):
     quote_id = Column(String, nullable=True)
     quote_note = Column(String, nullable=True)
     del_appt_time = Column(String, nullable=True)
+    sk_last_shipment_id = Column(Integer, nullable=True)
 
 
 # Main events

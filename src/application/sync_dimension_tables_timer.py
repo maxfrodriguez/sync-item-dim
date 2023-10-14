@@ -1,5 +1,5 @@
 import logging
-from typing import List, Set
+from typing import List
 from src.application.retrieve_shipments import retrieve_shipments_list
 from src.application.sync_dimension_tables import sync_dimension_tables
 from src.application.sync_loader_log import finish_synchronization

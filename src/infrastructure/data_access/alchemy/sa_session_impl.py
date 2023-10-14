@@ -100,15 +100,25 @@ class AlchemyBase(metaclass=Singleton):
 
     async def execute_statement(self, query: Select) -> Any:
         try:
-            with self._sessionmaker() as session:
-                if isinstance(query, Select):
-                    result_proxy = session.execute(query)
-                    result = result_proxy.scalars().first()
-                    return result
-                else:
-                    raise ValueError(f"Invalid query type: {type(query)}")
-        except Exception:
+            if isinstance(query, Select):
+                result_proxy = self._session.execute(query)
+                result = result_proxy.scalars().first()
+                return result
+            else:
+                raise ValueError(f"Invalid query type: {type(query)}")
+        except Exception as e:
             logging.error(f"Error executing query: {query}")
+            raise e
+        # try:
+        #     async with self._sessionmaker() as session:
+        #         if isinstance(query, Select):
+        #             result_proxy = await session.execute(query)
+        #             result = result_proxy.scalars().first()
+        #             return result
+        #         else:
+        #             raise ValueError(f"Invalid query type: {type(query)}")
+        # except Exception:
+        #     logging.error(f"Error executing query: {query}")
 
     def bulk_copy(self, objects: List[Any]) -> None:
         try:

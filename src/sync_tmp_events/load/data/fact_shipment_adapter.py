@@ -5,6 +5,7 @@ from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import S
 
 class FactShipmentAdapter(SAFactShipment):
     def __init__(self, sk_last_shipment_id, **kwargs):
+        del kwargs["id"]
         super().__init__(**kwargs)
         self.sk_last_shipment_id = sk_last_shipment_id
         self.template_id = get_template_id(value=self.template_id)

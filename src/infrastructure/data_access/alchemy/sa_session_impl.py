@@ -129,6 +129,8 @@ class AlchemyBase(metaclass=Singleton):
 
         except Exception as e:
             logging.error(f"Error: {e} executing the bulk copy at: {datetime.now()}")
+            raise e
+            
     
     def save_object(self, object: Any) -> None:
         try:
@@ -136,8 +138,9 @@ class AlchemyBase(metaclass=Singleton):
             self._session.flush()
             self._session.commit()
 
-        except Exception:
+        except Exception as e:
             logging.error(f"Error executing the bulk copy at: {datetime.now()}")
+            raise e
             
 
     def upsert_data(self, model_instances: List[Any]) -> None:
@@ -152,6 +155,7 @@ class AlchemyBase(metaclass=Singleton):
         except Exception as e:
             self._session.rollback()
             logging.error(f"upsert_data error: {e}")
+            raise e
 
     def upsert_bulk_data(self, model_instances: List[Any]) -> None:
         try:

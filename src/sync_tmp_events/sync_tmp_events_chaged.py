@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 from typing import List
 from os import getenv
@@ -25,14 +26,20 @@ class SyncronizerTmpAndEventsChaged:
         async with self.tmp_repository:
             await self.find_next_tmps_chaged()
 
+            start_process = datetime.now()
             # sincronize in packs of 100
             pack_size=getenv(f"PACKAGE_SIZE_TO_SYNC_{self.__stage.name}")
             for shipmets_to_sync in self.tmp_repository.next_shipments(pack_size=pack_size):
+                print(f"Start process at {start_process} with {len(shipmets_to_sync)} shipments")
                 self.tmp_repository.complement_with_equipment_info(shipmets_to_sync)
                 shipmets_to_sync = await self.identify_changes(shipmets_to_sync)
+                print(f"Identify changes {len(shipmets_to_sync)} shipments, time elapsed: {datetime.now() - start_process}")
                 custom_fields = await self.tmp_repository.get_custom_fields(shipmets_to_sync)
                 shipments_to_notify = await self.load(shipmets_to_sync, custom_fields)
+                print(f"Load {len(shipments_to_notify)} shipments, time elapsed: {datetime.now() - start_process}")
                 await self.notify(shipments_to_notify)
+                print(f"Notify {len(shipments_to_notify)} shipments, time elapsed: {datetime.now() - start_process}")
+                start_process = datetime.now()
         
 
     async def find_next_tmps_chaged(self):

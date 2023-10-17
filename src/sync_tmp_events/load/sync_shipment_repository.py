@@ -13,15 +13,13 @@ from src.sync_tmp_events.extract.data.shipment import Shipment
 from src.sync_tmp_events.load.data.dim_shipment_adapter import DimShipmentAdapter
 from src.sync_tmp_events.load.data.dim_template_adapter import DimTemplateAdapter
 from src.sync_tmp_events.load.data.fact_shipment_adapter import FactShipmentAdapter
-from src.sync_tmp_events.load.notification.dim_change_status_notification import DimChangeStatusChange
-from src.sync_tmp_events.load.notification.street_turn_notification import StreetTurnNotifier
 from src.sync_tmp_events.load.sync_shipment_repository_abc import SyncShipmentRepositoryABC
-from src.sync_tmp_events.load.queries.queries import NEXT_ID_WH, WAREHOUSE_SHIPMENTS
+from src.sync_tmp_events.load.queries.queries import WAREHOUSE_SHIPMENTS
 
 
 class SyncShipmentRepository(SyncShipmentRepositoryABC):
     def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
-        self.__stage = stage
+        #self.__stage = stage
         self.wh_repository = WareHouseDbConnector(stage=stage)
 
     async def find_shipments_to_sync(self, list_shipmets: List[Shipment]) -> List[Shipment]:
@@ -71,7 +69,7 @@ class SyncShipmentRepository(SyncShipmentRepositoryABC):
                             sk_last_shipment_id=shipment.id
                             , **asdict(shipment)
                         ))
-
+ 
                         list_shipments_to_notify.append(shipment)
                 except Exception as e:
                     logging.error(f"Error sincronizing shipment {shipment.ds_id}: {e}")
@@ -83,10 +81,20 @@ class SyncShipmentRepository(SyncShipmentRepositoryABC):
                     logging.error(f"Error sincronizing custom field {custom_field}: {e}")
 
             #saving all the data about shipments
-            self.wh_repository.bulk_copy(bulk_shipments)
-            self.wh_repository.upsert_data(model_instances=bulk_fact_shipments)
-            self.wh_repository.bulk_copy(bulk_templates)
-            self.wh_repository.bulk_copy(bulk_custom_fields)
+            try:
+                self.wh_repository.bulk_copy(bulk_shipments)
+                self.wh_repository.upsert_data(model_instances=bulk_fact_shipments)
+                self.wh_repository.bulk_copy(bulk_custom_fields)
+            except Exception as e:
+                ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_shipments)
+                logging.error(f"Error in bulk_copy and sync to warehouse the shipments: {ids}, with error: {e}")
+
+            try:
+                self.wh_repository.upsert_data(model_instances=bulk_templates)
+            except Exception as e:
+                ids = ", ".join(f"'{shipment.ds_id}'" for shipment in bulk_templates)
+                logging.error(f"Error in bulk_copy and sync to warehouse the templates: {ids}, with error: {e}")
+
 
         return list_shipments_to_notify
     

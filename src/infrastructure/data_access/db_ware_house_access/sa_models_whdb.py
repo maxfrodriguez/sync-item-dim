@@ -44,7 +44,7 @@ class SALoaderLog(Base, SAModelBaseWareHouse):
     async def get_highest_version(cls, orm_client: AlchemyBase) -> Self | None:
         try:
             #return await db_session.query(cls).order_by(desc(cls.mod_highest_version)).first()
-            statement = select(cls).order_by(desc(cls.mod_highest_version))#.limit(1)
+            statement = select(cls).order_by(desc(cls.id))#.limit(1)
             result = await orm_client.execute_statement(query=statement)
             instance: Self | None = result
             return instance

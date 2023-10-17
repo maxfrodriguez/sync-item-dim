@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import logging
 from typing import Generator, List
 
 from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
@@ -19,6 +20,7 @@ class TmpRepository(TmpRepositoryABC):
     def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
         self.wh_repository = WareHouseDbConnector(stage=stage)
         self.pt_repository = PTSQLAnywhere(stage=stage)
+        self.tmps_to_sync: List[Shipment] = []
         self.mod_datetime: datetime = datetime.utcnow() - timedelta(days=15)
         self.mod_datetime = self.mod_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -39,6 +41,39 @@ class TmpRepository(TmpRepositoryABC):
             yield self.tmps_to_sync[i:i + pack_size]
 
     async def get_tmp_changed(self) -> None:
+        result = await self._get_tmp_to_sync()
+
+        if not result:
+            return
+        
+        shipment_ids = set(shipment['ds_id'] for shipment in result)
+        ids = ", ".join(f"'{shipment}'" for shipment in shipment_ids)
+
+        raw_data: Generator[Record, None, None] = self.pt_repository.SELECT(
+            SHIPMENT_SPLITTED_QUERY.format(ids), result_type=dict
+        )
+        
+        #I want to find the shipments ds_id dulpicated in the result to loggin in and review in the future.
+        set_shipment_ids = set()
+        for raw_row_shipment in raw_data:
+            try:
+                if raw_row_shipment['ds_id'] in set_shipment_ids:
+                    logging.error(f"shipment duplicated in the result: {raw_row_shipment}")
+                else:
+                    set_shipment_ids.add(raw_row_shipment['ds_id'])
+                    tmp_to_sync = Shipment(**raw_row_shipment)
+                    mod_log_match = [eq_row for eq_row in result if eq_row["ds_id"] == raw_row_shipment['ds_id']]
+                    if mod_log_match:
+                        tmp_to_sync.id = mod_log_match[0]['ship_mod_id']
+                    self.tmps_to_sync.append(tmp_to_sync)        
+            except Exception as e:
+                logging.error(f"Error loading this tmp: {raw_row_shipment['ds_id']} to sync: {e}")
+
+
+        #order by asc by id the tmps_to_sync
+        self.tmps_to_sync.sort(key=lambda x: x.id)
+
+    async def _get_tmp_to_sync(self):
         async with self.wh_repository:
             latest_mod_log = await SALoaderLog.get_highest_version(self.wh_repository)
             mod_log = ModLog(
@@ -52,22 +87,12 @@ class TmpRepository(TmpRepositoryABC):
             return
         result: Generator[Record, None, None] = self.pt_repository.SELECT(
             MODLOG_QUERY.format(
-                mod_log.mod_highest_version, self.mod_datetime
+                mod_log.mod_highest_version
+                #, self.mod_datetime
             )
         )
-        ids = ", ".join(f"'{shipment['ds_id']}'" for shipment in result)
-        raw_data: Generator[Record, None, None] = self.pt_repository.SELECT(
-            SHIPMENT_SPLITTED_QUERY.format(ids), result_type=dict
-        )
-        self.tmps_to_sync = [Shipment(**raw_data) for raw_data in raw_data]
-
-        for tmp_to_sync in self.tmps_to_sync:
-            mod_log_match = [
-                    eq_row for eq_row in result if eq_row["ds_id"] == tmp_to_sync.ds_id
-                ]
-            
-            if mod_log_match:
-                tmp_to_sync.id = mod_log_match[0]['r_mod_id']
+        
+        return result
 
         
 
@@ -101,7 +126,12 @@ class TmpRepository(TmpRepositoryABC):
         raws_custom_fields: Generator[Record, None, None] = self.pt_repository.SELECT(
                 SHIPMENTS_CUSTOM_FIELDS_QUERY.format(ids), result_type=dict
             )
-        return raws_custom_fields
         
+        custom_fields = []
+        for custom_field in raws_custom_fields:
+            tmp = [shipment for shipment in self.tmps_to_sync if shipment.ds_id == custom_field['ds_id']]
+            if tmp:
+                custom_field['sk_id_shipment_fk'] = tmp[0].id
+                custom_fields.append(custom_field)
 
-        
+        return custom_fields

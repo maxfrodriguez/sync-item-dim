@@ -1,21 +1,28 @@
 from typing import Final
 
 MODLOG_QUERY: Final[str] = """
-    SELECT DISTINCT
-    ds.ds_id,
-    ds.ds_status,
-    MAX(md_ds.mod_id) AS r_mod_id
-    FROM [DBA].[modlog_ship] md_ds
-    INNER JOIN [DBA].[modlog] md 
-    ON  md.mod_id = md_ds.mod_id
-    LEFT JOIN [DBA].[disp_ship] ds
-    ON ds.ds_id = md_ds.ds_id
-    GROUP BY ds.ds_id,
-            ds.ds_status
-    HAVING MAX(md_ds.mod_id) > {0}
-    OR (ds.ds_status = 'K' AND MAX(md.mod_datetime) > '{1}')
-    ORDER BY ds.ds_status DESC
-    """
+SELECT
+    md_ds.ds_id
+    , MAX(md_ds.ship_mod_id) as ship_mod_id
+FROM [DBA].[modlog_ship] md_ds
+where md_ds.ship_mod_id > {0}
+GROUP BY md_ds.ds_id
+ORDER BY ship_mod_id
+"""
+# SELECT DISTINCT
+# ds.ds_id,
+# ds.ds_status,
+# MAX(md_ds.mod_id) AS r_mod_id
+# FROM [DBA].[modlog_ship] md_ds
+# INNER JOIN [DBA].[modlog] md 
+# ON  md.mod_id = md_ds.mod_id
+# LEFT JOIN [DBA].[disp_ship] ds
+# ON ds.ds_id = md_ds.ds_id
+# GROUP BY ds.ds_id,
+#         ds.ds_status
+# HAVING MAX(md_ds.mod_id) > {0}
+# OR (ds.ds_status = 'K' AND MAX(md.mod_datetime) > '{1}')
+# ORDER BY ds.ds_status DESC
 
 SHIPMENT_EQUIPMENT_SPLITTED_QUERY: Final [str] = """
     SELECT DISTINCT
@@ -114,7 +121,7 @@ SHIPMENT_SPLITTED_QUERY : Final [str]= """
         LEFT JOIN [DBA].[companies] c1 ON c1.co_id = ds.ds_billto_id
         LEFT JOIN [DBA].[companies] org ON org.co_id = ds.ds_origin_id
         LEFT JOIN [DBA].[companies] des ON des.co_id = ds.ds_findest_id
-        LEFT JOIN [DBA].[disp_items] di_hcap ON ds.ds_id = di_hcap.di_shipment_id and di_hcap.AmountType = 1
+        LEFT JOIN [DBA].[disp_items] di_hcap ON ds.ds_id = di_hcap.di_shipment_id and di_hcap.AmountType = 1 and di_hcap.Note is not null
         LEFT JOIN [DBA].current_shipments cs ON cs.cs_id = ds.ds_id
         LEFT JOIN [DBA].[modlog_ship] md_ds on ds.ds_id = md_ds.ds_id
         LEFT JOIN [DBA].[modlog] md on md.mod_id = md_ds.mod_id

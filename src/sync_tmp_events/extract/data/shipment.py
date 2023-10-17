@@ -44,6 +44,7 @@ class Shipment:
     quote_note : str
     #RateCodename : str
     mod_created_pt_dt : datetime
+    id : int = None
     eq_c_info_eq_type : str = None
     eq_c_info_line : str = None
     eq_c_info_type : str = None

@@ -11,7 +11,8 @@ class PTSQLAnywhere(SQLAnywhereBase):
 
     def connect(self) -> None:
         try:
-            self._get_credentials()
+            # self._get_credentials()
+            self._get_credentials_from_env()
             self._get_sybase_resources()
         except Exception as e:
             logging.error(f"Error connecting to database 121Tower: {e}")

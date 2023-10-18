@@ -5,6 +5,7 @@ from datetime import datetime
 from json import loads
 from typing import Any, Dict, Generator, List, Optional, Type, Union
 from urllib.parse import quote
+from os import getenv
 
 from async_lru import alru_cache
 from sqlalchemy import Select, create_engine, delete, text
@@ -50,6 +51,14 @@ class AlchemyBase(metaclass=Singleton):
                     raise ValueError(f"None value in credentials for {key}")
                 self._secrets[key] = value
 
+    async def _get_credentials_from_env(self) -> None:
+        if self._secrets is None:
+            self._secrets = {}
+
+            for key, value in self._keyVaultParams.items():
+                value = value.replace("-", "_")
+                self._secrets[key] = getenv(f"{value}_{self._stage.name}")
+
     def __get_password(self) -> str:
         password = self._secrets["password"]
         if self._passEncrypt:
@@ -70,9 +79,6 @@ class AlchemyBase(metaclass=Singleton):
             params = self.__decode_params(self._secrets["params"])
             connection_str = f"{connection_str}?{params}"
 
-        # if alchemyDriverName == "mssql+pyodbc":
-        #     connection_str = "mssql+pyodbc://sa:Dookie22@127.0.0.1:1433/MovementsCalculatorDB?driver=ODBC+Driver+17+for+SQL+Server"
-
         return create_engine(url=connection_str, echo=True)
 
     def __decode_params(self, params: str) -> str:
@@ -81,7 +87,8 @@ class AlchemyBase(metaclass=Singleton):
 
     async def _get_sqlalchemy_resources(self, alchemyDriverName: str) -> None:
         if self._sessionmaker is None:
-            await self._get_credentials()
+            #await self._get_credentials()
+            await self._get_credentials_from_env()
             engine = await self._setup_engine(alchemyDriverName=alchemyDriverName)
             self._sessionmaker = sessionmaker(bind=engine)
 

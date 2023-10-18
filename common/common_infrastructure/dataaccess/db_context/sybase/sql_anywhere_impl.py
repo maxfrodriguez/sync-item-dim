@@ -1,6 +1,7 @@
 import logging
 from collections import namedtuple
 from typing import Any, Generator, Tuple, Type, TypeVar
+from os import getenv
 
 from sqlanydb import Connection, Cursor, connect
 from typing_extensions import Self
@@ -31,6 +32,7 @@ class SQLAnywhereBase(SQLAnywhereABC):
     def _get_credentials(self) -> dict[str, str]:
         if self._secrets is None:
             self._secrets = {}
+
             with KeyVaultImpl(self._stage) as kv:
                 gathered_secrets = (kv.get_secret(secret) for secret in self._keyVaultParams.values())
 
@@ -38,6 +40,14 @@ class SQLAnywhereBase(SQLAnywhereABC):
                 if value is None:
                     raise ValueError(f"None value in credentials for {key}")
                 self._secrets[key] = value
+    
+    def _get_credentials_from_env(self) -> dict[str, str]:
+        if self._secrets is None:
+            self._secrets = {}
+
+            for key, value in self._keyVaultParams.items():
+                value = value.replace("-", "_")
+                self._secrets[key] = getenv(f"{value}_{self._stage.name}")
 
     def _get_sybase_resources(self) -> None:
         self._connection = connect(

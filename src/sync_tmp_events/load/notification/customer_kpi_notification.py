@@ -13,7 +13,8 @@ from src.sync_tmp_events.load.notification.notifier_abc import Notifier
 class CustomerKpiNotifier(Notifier):
     def __init__(self, stage) -> None:
         _sb_con_string: str= getenv(f"SERVICE_BUS_CONN_STRING_{stage.name}")
-        self._queue_name: str= getenv(f"SB_QUEUE_CUSTOMER_KPI_{stage.name}")
+        self._topic_name: str= getenv(f"SB_TOPIC_TMP_TO_SYNC_{stage.name}")
+        self._subscription_name: str= getenv(f"SB_SUBSCRIPTION_TMP_TO_SYNC_{stage.name}")
         self._sb_client: ServiceBusImpl = ServiceBusClient.from_connection_string(conn_str=_sb_con_string)
 
     async def send_information(self, shipments_customers: List[Customer]):
@@ -28,7 +29,7 @@ class CustomerKpiNotifier(Notifier):
                     )
                 )
                     
-            sender = self._sb_client.get_queue_sender(queue_name=self._queue_name)
+            sender = self._sb_client.get_topic_sender(topic_name=self._topic_name, subscription_name=self._subscription_name)
             message = ServiceBusMessage(dumps(customers))
             sender.send_messages(message)
 

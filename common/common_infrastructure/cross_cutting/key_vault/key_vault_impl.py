@@ -32,7 +32,7 @@ class KeyVaultImpl(KeyVaultABC):
         self.__credential.close()
         self.__client.close()
 
-    # este comando lo puso david el viernes 09/Junio/2021 a las 4:46Col y funcionaba antes del command
+    # este comando lo puso david el viernes 09/Junio/2021 a las 4:46Col y ahora funciona mejor gracias a David xD
     @lru_cache(maxsize=20)
     def get_secret(self, secret_name: str) -> Union[str, None]:
         result: Union[str, None] = None

@@ -15,7 +15,8 @@ class KeyVaultImpl(KeyVaultABC):
     __client: SecretClient = None
 
     def __init__(self, stage: ENVIRONMENT) -> None:
-        self.__credential, self.__client = KeyVaultHelper.get_credential_client(stage=stage)
+        self.__credential: DefaultAzureCredential = DefaultAzureCredential()
+        self.__client: SecretClient = SecretClient(vault_url=f"https://{stage}.vault.azure.net", credential=self.__credential)
 
     async def __aenter__(self) -> Self:
         return self

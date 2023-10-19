@@ -7,6 +7,7 @@ from sqlanydb import Connection, Cursor, connect
 from typing_extensions import Self
 
 from common.common_infrastructure.cross_cutting import ENVIRONMENT, KeyVaultImpl
+from common.common_infrastructure.cross_cutting.environment import ConfigurationEnvHelper
 
 from .sql_anywhere_abc import SQLAnywhereABC
 
@@ -42,12 +43,7 @@ class SQLAnywhereBase(SQLAnywhereABC):
                 self._secrets[key] = value
     
     def _get_credentials_from_env(self) -> dict[str, str]:
-        if self._secrets is None:
-            self._secrets = {}
-
-            for key, value in self._keyVaultParams.items():
-                value = value.replace("-", "_")
-                self._secrets[key] = getenv(f"{value}_{self._stage.name}")
+        self._secrets = ConfigurationEnvHelper(stage=self._stage).get_secrets(self._keyVaultParams)
 
     def _get_sybase_resources(self) -> None:
         self._connection = connect(

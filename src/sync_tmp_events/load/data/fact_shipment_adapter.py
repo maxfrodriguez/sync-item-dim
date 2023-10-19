@@ -8,5 +8,4 @@ class FactShipmentAdapter(SAFactShipment):
         del kwargs["id"]
         super().__init__(**kwargs)
         self.sk_last_shipment_id = sk_last_shipment_id
-        self.template_id = get_template_id(value=self.template_id)
         self.created_at = datetime.strptime(kwargs.get('mod_created_pt_dt'), '%Y-%m-%d %H:%M:%S.%f')

@@ -2,10 +2,11 @@ from datetime import datetime
 import logging
 from typing import List
 from os import getenv
+from common.common_infrastructure.cross_cutting.environment import ConfigurationEnvHelper
 
 from src.domain.entities.shipment import Shipment
 from src.sync_tmp_events.extract.tmp_repository_abc import TmpRepositoryABC
-from src.sync_tmp_events.load.notification.customer_kpi_notification import CustomerKpiNotifier
+from src.sync_tmp_events.load.notification.customer_kpi_notification import TmpChangedNotifier
 from src.sync_tmp_events.load.notification.dim_change_status_notification import DimChangeStatusChange
 from src.sync_tmp_events.load.notification.hubspot_notification import HubSpotNotifier
 from src.sync_tmp_events.load.notification.notifier_manager import NotifierManager
@@ -28,7 +29,7 @@ class SyncronizerTmpAndEventsChaged:
 
             start_process = datetime.now()
             # sincronize in packs of 100
-            pack_size=getenv(f"PACKAGE_SIZE_TO_SYNC_{self.__stage.name}")
+            pack_size=ConfigurationEnvHelper(stage=self.__stage).get_secret("PackageSizeToSync")
             for shipmets_to_sync in self.tmp_repository.next_shipments(pack_size=pack_size):
                 print(f"Start process at {start_process} with {len(shipmets_to_sync)} shipments")
                 self.tmp_repository.complement_with_equipment_info(shipmets_to_sync)
@@ -66,15 +67,12 @@ class SyncronizerTmpAndEventsChaged:
         try:
             #add any new notification here
             notifier_manager = NotifierManager(self.__stage)
-            
-            #notifier_manager.register_notifier(EventsNotifier)
-            #notifier_manager.register_notifier(ItemsNotifier)
 
-            notifier_manager.register_notifier(StreetTurnNotifier)
-            notifier_manager.register_notifier(DimChangeStatusChange)
-            notifier_manager.register_notifier(OnTimeDeliveryNotifier)
-            notifier_manager.register_notifier(CustomerKpiNotifier)
-            notifier_manager.register_notifier(HubSpotNotifier)
+            notifier_manager.register_notifier(TmpChangedNotifier)
+            # notifier_manager.register_notifier(StreetTurnNotifier)
+            # notifier_manager.register_notifier(DimChangeStatusChange)
+            # notifier_manager.register_notifier(OnTimeDeliveryNotifier)
+            # notifier_manager.register_notifier(HubSpotNotifier)
 
             
             await notifier_manager.notify_all_by_pakages(list_shipments, size_pagake=10)

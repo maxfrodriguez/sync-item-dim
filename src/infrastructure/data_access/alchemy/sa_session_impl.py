@@ -11,6 +11,7 @@ from async_lru import alru_cache
 from sqlalchemy import Select, create_engine, delete, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
+from common.common_infrastructure.cross_cutting.environment import ConfigurationEnvHelper
 
 from src.infrastructure.cross_cutting import ENVIRONMENT, KeyVaultImpl
 from src.infrastructure.data_access.alchemy.sa_session_helper import SASessionMaker
@@ -52,12 +53,7 @@ class AlchemyBase(metaclass=Singleton):
                 self._secrets[key] = value
 
     async def _get_credentials_from_env(self) -> None:
-        if self._secrets is None:
-            self._secrets = {}
-
-            for key, value in self._keyVaultParams.items():
-                value = value.replace("-", "_")
-                self._secrets[key] = getenv(f"{value}_{self._stage.name}")
+        self._secrets = ConfigurationEnvHelper(stage=self._stage).get_secrets(self._keyVaultParams)
 
     def __get_password(self) -> str:
         password = self._secrets["password"]

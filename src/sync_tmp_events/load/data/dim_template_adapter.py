@@ -8,5 +8,4 @@ class DimTemplateAdapter(SATemplate):
         del kwargs["division"]
         del kwargs["id"]
         super().__init__(**kwargs)
-        self.template_id = get_template_id(value=self.template_id)
         self.created_at = datetime.utcnow().replace(second=0, microsecond=0)

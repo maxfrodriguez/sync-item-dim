@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -54,3 +55,22 @@ class Shipment:
     eq_h_info_type : str = None
     chassis_id : str = None
     hash : int = None
+
+    # post init to load the temp_id
+    def __post_init__(self) -> None:
+        try:
+            self.template_id = self.__get_template_id(value=self.template_id)
+            if (self.quote_id is None and self.quote_note is not None):
+                self.quote_id = self.__get_quote_id(value=self.quote_note)
+        except Exception as e:
+            print(f"Error in Shipment.__post_init__: {e}")
+
+
+    def __get_template_id(self, value: str) -> int:
+        template_id = re.sub("[^0-9]", "", value)
+        return None if not template_id else int(template_id)
+
+    def __get_quote_id(self, value: str) -> str:
+        s = value
+        match = re.search(r"QUOTE#\s*(.*?)\s*-", s)
+        return match.group(1) if match else None

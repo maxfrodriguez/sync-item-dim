@@ -69,7 +69,6 @@ class TmpRepository(TmpRepositoryABC):
             except Exception as e:
                 logging.error(f"Error loading this tmp: {raw_row_shipment['ds_id']} to sync: {e}")
 
-
         #order by asc by id the tmps_to_sync
         self.tmps_to_sync.sort(key=lambda x: x.id)
 
@@ -94,10 +93,7 @@ class TmpRepository(TmpRepositoryABC):
         
         return result
 
-        
-
     def complement_with_equipment_info(self, list_shipments: List[Shipment]) -> None:
-
         ids = ", ".join(f"'{shipment.ds_id}'" for shipment in list_shipments)
         raws_equipment: Generator[Record, None, None] = self.pt_repository.SELECT(
                 SHIPMENT_EQUIPMENT_SPLITTED_QUERY.format(ids), result_type=dict

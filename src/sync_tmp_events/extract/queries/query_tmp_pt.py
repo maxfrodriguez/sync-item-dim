@@ -115,7 +115,6 @@ SHIPMENT_SPLITTED_QUERY : Final [str]= """
         , ds.custom9 as st_custom_9
         , ds.custom1 AS quote_id
         , di_hcap.Note AS quote_note
-        --, di_hcap.RateCodename
         , md.mod_datetime as mod_created_pt_dt
     FROM [DBA].[disp_ship] ds
         LEFT JOIN [DBA].[companies] c1 ON c1.co_id = ds.ds_billto_id
@@ -131,7 +130,6 @@ SHIPMENT_SPLITTED_QUERY : Final [str]= """
         and
         md_ds.mod_type = 'C'
     ORDER BY ds.ds_id
-        --, di_hcap.RateCodename
     """ 
 
 SHIPMENTS_CUSTOM_FIELDS_QUERY : Final [str] = """

@@ -6,7 +6,7 @@ from common.common_infrastructure.dataaccess.db_context.sybase.sql_anywhere_impl
 
 class PTSQLAnywhere(SQLAnywhereBase):
     def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD):
-        secrets = {"uid": "PT-UID", "pwd": "PT-PWD", "host": "PT-HOST", "dbn": "PT-DBN", "server": "PT-SERVER"}
+        secrets = {"uid": "PtUid", "pwd": "PtPwd", "host": "PtHost", "dbn": "PtDbn", "server": "PtServer"}
         super().__init__(keyVaults=secrets, stage=stage)
 
     def connect(self) -> None:

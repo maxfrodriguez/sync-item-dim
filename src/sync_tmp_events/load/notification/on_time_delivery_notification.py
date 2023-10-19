@@ -4,7 +4,6 @@ from orjson import dumps
 
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
 
-from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
 from src.sync_tmp_events.load.notification.notifier_abc import Notifier
 
 
@@ -13,7 +12,7 @@ class OnTimeDeliveryNotifier(Notifier):
         #self.__enviroment: ENVIRONMENT = stage
         _sb_con_string: str= getenv(f"SERVICE_BUS_CONN_STRING_{stage.name}")
         self._queue_name: str= getenv(f"SB_QUEUE_ON_TIME_DELIVERY_{stage.name}")
-        self._sb_client: ServiceBusImpl = ServiceBusClient.from_connection_string(conn_str=_sb_con_string)
+        self._sb_client = ServiceBusClient.from_connection_string(conn_str=_sb_con_string)
 
     async def send_information(self, shipment_list: list):
         try:

@@ -1,7 +1,8 @@
 import pytest
-from common.common_infrastructure.cross_cutting.environment import ConfigurationEnvHelper
+from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT, ConfigurationEnvHelper
+from common.common_infrastructure.cross_cutting.key_vault.key_vault_impl import KeyVaultImpl
 
-from src.infrastructure.cross_cutting import ENVIRONMENT, KeyVaultImpl
+
 
 
 @pytest.mark.asyncio

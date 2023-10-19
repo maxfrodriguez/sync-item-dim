@@ -5,9 +5,8 @@ from typing import List
 
 from azure.core.credentials import AzureKeyCredential
 from azure.eventgrid import EventGridEvent, EventGridPublisherClient
+from src.sync_tmp_events.extract.data.shipment import Shipment
 
-from src.domain.entities.shipment import Shipment
-from src.infrastructure.cross_cutting.event_grid.event_grid_impl import EventGridImpl
 from src.sync_tmp_events.load.notification.notifier_abc import Notifier
 
 
@@ -15,7 +14,7 @@ class DimChangeStatusChange(Notifier):
     def __init__(self, stage) -> None:
         _credential: str= getenv(f"EVENT_GRID_CHANGE_STATUS_KD_CREDENTIAL_{stage.name}")
         _endpoint: str= getenv(f"EVENT_GRID_CHANGE_STATUS_KD_ENDPOINT_{stage.name}")
-        self.__eg_client: EventGridImpl = EventGridPublisherClient(
+        self.__eg_client = EventGridPublisherClient(
             _endpoint
             , AzureKeyCredential(_credential)
         )

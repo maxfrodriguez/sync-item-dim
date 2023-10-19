@@ -3,7 +3,6 @@ from os import getenv
 from orjson import dumps
 from typing import List
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
-from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
 from src.sync_tmp_events.extract.data.shipment import Shipment
 from src.sync_tmp_events.load.data.customer import Customer
 from src.sync_tmp_events.load.notification.notifier_abc import Notifier
@@ -14,7 +13,7 @@ class HubSpotNotifier(Notifier):
     def __init__(self, stage) -> None:
         _sb_con_string: str= getenv(f"SERVICE_BUS_CONN_STRING_{stage.name}")
         self._queue_name: str= getenv(f"SB_QUEUE_WH_HUBSPOT_{stage.name}")
-        self._sb_client: ServiceBusImpl = ServiceBusClient.from_connection_string(conn_str=_sb_con_string)
+        self._sb_client = ServiceBusClient.from_connection_string(conn_str=_sb_con_string)
 
     async def send_information(self, shipments_customers: List[Shipment]):
         customers: List[Customer] = []

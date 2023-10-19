@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 from typing import Any, Dict, List
 from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
-from src.infrastructure.cross_cutting.hasher import deep_hash
+from common.common_infrastructure.cross_cutting.hasher import deep_hash
 
 
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector

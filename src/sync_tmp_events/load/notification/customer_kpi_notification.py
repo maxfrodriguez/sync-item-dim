@@ -7,7 +7,6 @@ from azure.servicebus import ServiceBusClient, ServiceBusMessage
 from common.common_infrastructure.cross_cutting.environment import ConfigurationEnvHelper
 
 from src.sync_tmp_events.load.data.customer import Customer
-from src.infrastructure.cross_cutting.service_bus.service_bus_impl import ServiceBusImpl
 from src.sync_tmp_events.load.notification.notifier_abc import Notifier
 
 
@@ -19,7 +18,7 @@ class TmpChangedNotifier(Notifier):
             "subscription": "SbSubscriptionTmToSync"
         }
         ConfigurationEnvHelper(stage=stage).get_secrets(self._secret)
-        self._sb_client: ServiceBusImpl = ServiceBusClient.from_connection_string(conn_str=self._secret["conn"])
+        self._sb_client = ServiceBusClient.from_connection_string(conn_str=self._secret["conn"])
 
     async def send_information(self, shipments_customers: List[Customer]):
         try:

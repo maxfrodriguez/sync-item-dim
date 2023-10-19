@@ -3,8 +3,9 @@ import logging
 from typing import List
 from os import getenv
 from common.common_infrastructure.cross_cutting.environment import ConfigurationEnvHelper
+from src.sync_tmp_events.extract.data.shipment import Shipment
 
-from src.domain.entities.shipment import Shipment
+
 from src.sync_tmp_events.extract.tmp_repository_abc import TmpRepositoryABC
 from src.sync_tmp_events.load.notification.customer_kpi_notification import TmpChangedNotifier
 from src.sync_tmp_events.load.notification.dim_change_status_notification import DimChangeStatusChange

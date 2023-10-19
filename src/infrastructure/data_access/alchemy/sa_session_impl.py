@@ -11,9 +11,10 @@ from async_lru import alru_cache
 from sqlalchemy import Select, create_engine, delete, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
-from common.common_infrastructure.cross_cutting.environment import ConfigurationEnvHelper
+from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT, ConfigurationEnvHelper
+from common.common_infrastructure.cross_cutting.key_vault.key_vault_impl import KeyVaultImpl
 
-from src.infrastructure.cross_cutting import ENVIRONMENT, KeyVaultImpl
+
 from src.infrastructure.data_access.alchemy.sa_session_helper import SASessionMaker
 
 

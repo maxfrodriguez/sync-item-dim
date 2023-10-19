@@ -7,7 +7,8 @@ from azure.eventgrid import EventGridEvent, EventGridPublisherClient
 
 from typing import List
 from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT, ConfigurationEnvHelper
-from src.domain.entities.shipment import Shipment
+from src.sync_tmp_events.extract.data.shipment import Shipment
+
 from src.sync_tmp_events.load.notification.notifier_abc import Notifier
 
 class StreetTurnNotifier(Notifier):

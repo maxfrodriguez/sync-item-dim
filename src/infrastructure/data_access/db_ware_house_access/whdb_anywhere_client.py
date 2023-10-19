@@ -1,4 +1,5 @@
-from src.infrastructure.cross_cutting.environment import ENVIRONMENT
+
+from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.data_access.alchemy.sa_session_impl import AlchemyBase
 
 

@@ -3,11 +3,12 @@ import logging
 from typing import Generator, List
 
 from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
+from common.common_infrastructure.dataaccess.db_context.sybase.sql_anywhere_impl import Record
 from common.common_infrastructure.dataaccess.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere
 
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SALoaderLog
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
-from src.infrastructure.data_access.sybase.sql_anywhere_impl import Record
+
 
 from src.sync_tmp_events.extract.data.modlog import ModLog
 from src.sync_tmp_events.extract.data.shipment import Shipment

@@ -1,12 +1,11 @@
 import logging
-from asyncio import gather
 from collections import namedtuple
 from typing import Any, Dict, Generator, List, Tuple, Type, TypeVar
 
 from sqlanydb import Connection, Cursor, connect
 from typing_extensions import Self
 
-from src.infrastructure.cross_cutting import ENVIRONMENT, KeyVaultImpl
+from common.src.infrastructure.cross_cutting import ENVIRONMENT, KeyVaultImpl
 
 from .sql_anywhere_abc import SQLAnywhereABC
 
@@ -15,35 +14,37 @@ Record = TypeVar("Record", bound=tuple)
 
 class SQLAnywhereBase(SQLAnywhereABC):
     _instance = None
+    _secrets: Dict[str, str] = None
     _connection: Connection = None
     _cursor: Cursor = None
-    _secrets: Dict[str, str] = None
+    _keyVaultParams: Dict[str, str] = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
-        self.__stage: ENVIRONMENT = stage
+    def __init__(self, keyVaults: dict[str, str] = None, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
+        self._stage: ENVIRONMENT = stage
+        self._keyVaultParams = keyVaults
 
-    async def _get_credentials(self, secrets: Dict[str, str]) -> Dict[str, str]:
+    def _get_credentials(self) -> Dict[str, str]:
         if self._secrets is None:
-            credentials = {}
-            async with KeyVaultImpl(self.__stage) as kv:
-                gathered_secrets = await gather(*(kv.get_secret(secret) for secret in secrets.values()))
+            self._secrets = {}
+            with KeyVaultImpl(self._stage) as kv:
+                gathered_secrets = (kv.get_secret(secret) for secret in self._keyVaultParams.values())
 
-            for key, value in zip(secrets.keys(), gathered_secrets):
+            for key, value in zip(self._keyVaultParams.keys(), gathered_secrets):
                 if value is None:
                     raise ValueError(f"None value in credentials for {key}")
-                credentials[key] = value
+                self._secrets[key] = value
 
-            self._secrets = credentials
-
-        return self._secrets
-
-    async def _get_sybase_resources(self, uid: str, pwd: str, host: str, dbn: str, server: str) -> None:
-        self._connection = connect(uid=uid, pwd=pwd, host=host, dbn=dbn, server=server)
+    def _get_sybase_resources(self) -> None:
+        self._connection = connect(uid=self._secrets["uid"]
+                                   , pwd=self._secrets["pwd"]
+                                   , host=self._secrets["host"]
+                                   , dbn=self._secrets["dbn"]
+                                   , server=self._secrets["server"])
         # get sessionmaker from connection
         self._cursor = self._connection.cursor()
 
@@ -54,11 +55,11 @@ class SQLAnywhereBase(SQLAnywhereABC):
         except Exception as e:
             logging.exception(f"An exception has occurred. {str(e)}")
 
-    async def __aenter__(self) -> Self:
-        await self.connect()
+    def __enter__(self) -> Self:
+        self.connect()
         return self
 
-    async def __aexit__(self, *_) -> None:
+    def __exit__(self, *_) -> None:
         self.close_all()
 
     def __generator_dict_fetch_all(self) -> Generator[Dict, None, None]:

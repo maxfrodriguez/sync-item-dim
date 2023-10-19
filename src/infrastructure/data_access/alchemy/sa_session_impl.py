@@ -5,13 +5,16 @@ from datetime import datetime
 from json import loads
 from typing import Any, Dict, Generator, List, Optional, Type, Union
 from urllib.parse import quote
+from os import getenv
 
 from async_lru import alru_cache
 from sqlalchemy import Select, create_engine, delete, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
+from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT, ConfigurationEnvHelper
+from common.common_infrastructure.cross_cutting.key_vault.key_vault_impl import KeyVaultImpl
 
-from src.infrastructure.cross_cutting import ENVIRONMENT, KeyVaultImpl
+
 from src.infrastructure.data_access.alchemy.sa_session_helper import SASessionMaker
 
 
@@ -50,6 +53,9 @@ class AlchemyBase(metaclass=Singleton):
                     raise ValueError(f"None value in credentials for {key}")
                 self._secrets[key] = value
 
+    async def _get_credentials_from_env(self) -> None:
+        self._secrets = ConfigurationEnvHelper(stage=self._stage).get_secrets(self._keyVaultParams)
+
     def __get_password(self) -> str:
         password = self._secrets["password"]
         if self._passEncrypt:
@@ -70,9 +76,6 @@ class AlchemyBase(metaclass=Singleton):
             params = self.__decode_params(self._secrets["params"])
             connection_str = f"{connection_str}?{params}"
 
-        # if alchemyDriverName == "mssql+pyodbc":
-        #     connection_str = "mssql+pyodbc://sa:Dookie22@127.0.0.1:1433/MovementsCalculatorDB?driver=ODBC+Driver+17+for+SQL+Server"
-
         return create_engine(url=connection_str, echo=True)
 
     def __decode_params(self, params: str) -> str:
@@ -81,7 +84,8 @@ class AlchemyBase(metaclass=Singleton):
 
     async def _get_sqlalchemy_resources(self, alchemyDriverName: str) -> None:
         if self._sessionmaker is None:
-            await self._get_credentials()
+            #await self._get_credentials()
+            await self._get_credentials_from_env()
             engine = await self._setup_engine(alchemyDriverName=alchemyDriverName)
             self._sessionmaker = sessionmaker(bind=engine)
 
@@ -100,15 +104,25 @@ class AlchemyBase(metaclass=Singleton):
 
     async def execute_statement(self, query: Select) -> Any:
         try:
-            with self._sessionmaker() as session:
-                if isinstance(query, Select):
-                    result_proxy = session.execute(query)
-                    result = result_proxy.scalars().first()
-                    return result
-                else:
-                    raise ValueError(f"Invalid query type: {type(query)}")
-        except Exception:
+            if isinstance(query, Select):
+                result_proxy = self._session.execute(query)
+                result = result_proxy.scalars().first()
+                return result
+            else:
+                raise ValueError(f"Invalid query type: {type(query)}")
+        except Exception as e:
             logging.error(f"Error executing query: {query}")
+            raise e
+        # try:
+        #     async with self._sessionmaker() as session:
+        #         if isinstance(query, Select):
+        #             result_proxy = await session.execute(query)
+        #             result = result_proxy.scalars().first()
+        #             return result
+        #         else:
+        #             raise ValueError(f"Invalid query type: {type(query)}")
+        # except Exception:
+        #     logging.error(f"Error executing query: {query}")
 
     def bulk_copy(self, objects: List[Any]) -> None:
         try:
@@ -119,6 +133,8 @@ class AlchemyBase(metaclass=Singleton):
 
         except Exception as e:
             logging.error(f"Error: {e} executing the bulk copy at: {datetime.now()}")
+            raise e
+            
     
     def save_object(self, object: Any) -> None:
         try:
@@ -126,8 +142,9 @@ class AlchemyBase(metaclass=Singleton):
             self._session.flush()
             self._session.commit()
 
-        except Exception:
+        except Exception as e:
             logging.error(f"Error executing the bulk copy at: {datetime.now()}")
+            raise e
             
 
     def upsert_data(self, model_instances: List[Any]) -> None:
@@ -142,6 +159,7 @@ class AlchemyBase(metaclass=Singleton):
         except Exception as e:
             self._session.rollback()
             logging.error(f"upsert_data error: {e}")
+            raise e
 
     def upsert_bulk_data(self, model_instances: List[Any]) -> None:
         try:

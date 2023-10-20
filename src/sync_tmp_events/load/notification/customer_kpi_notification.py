@@ -4,20 +4,20 @@ from os import getenv
 from orjson import dumps
 
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
-from common.common_infrastructure.cross_cutting.environment import ConfigurationEnvHelper
+from common.common_infrastructure.cross_cutting.ConfigurationEnvHelper import ConfigurationEnvHelper
 
 from src.sync_tmp_events.load.data.customer import Customer
 from src.sync_tmp_events.load.notification.notifier_abc import Notifier
 
 
 class TmpChangedNotifier(Notifier):
-    def __init__(self, stage) -> None:
+    def __init__(self) -> None:
         self._secret: dict[str, str] = {
             "conn": "ServiceBusConn",
             "topic": "SbTopicTmpToSync",
             "subscription": "SbSubscriptionTmToSync"
         }
-        ConfigurationEnvHelper(stage=stage).get_secrets(self._secret)
+        ConfigurationEnvHelper().get_secrets(self._secret)
         self._sb_client = ServiceBusClient.from_connection_string(conn_str=self._secret["conn"])
 
     async def send_information(self, shipments_customers: List[Customer]):

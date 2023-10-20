@@ -6,8 +6,7 @@ from os import getenv
 from sqlanydb import Connection, Cursor, connect
 from typing_extensions import Self
 
-from common.common_infrastructure.cross_cutting import ENVIRONMENT, KeyVaultImpl
-from common.common_infrastructure.cross_cutting.environment import ConfigurationEnvHelper
+from common.common_infrastructure.cross_cutting.ConfigurationEnvHelper import ConfigurationEnvHelper
 
 from .sql_anywhere_abc import SQLAnywhereABC
 
@@ -26,24 +25,13 @@ class SQLAnywhereBase(SQLAnywhereABC):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, keyVaults: dict[str, str] = None, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
-        self._stage: ENVIRONMENT = stage
+    def __init__(self, keyVaults: dict[str, str] = None) -> None:
         self._keyVaultParams = keyVaults
 
     def _get_credentials(self) -> dict[str, str]:
         if self._secrets is None:
             self._secrets = {}
-
-            with KeyVaultImpl(self._stage) as kv:
-                gathered_secrets = (kv.get_secret(secret) for secret in self._keyVaultParams.values())
-
-            for key, value in zip(self._keyVaultParams.keys(), gathered_secrets):
-                if value is None:
-                    raise ValueError(f"None value in credentials for {key}")
-                self._secrets[key] = value
-    
-    def _get_credentials_from_env(self) -> dict[str, str]:
-        self._secrets = ConfigurationEnvHelper(stage=self._stage).get_secrets(self._keyVaultParams)
+        self._secrets = ConfigurationEnvHelper().get_secrets(self._keyVaultParams)
 
     def _get_sybase_resources(self) -> None:
         self._connection = connect(

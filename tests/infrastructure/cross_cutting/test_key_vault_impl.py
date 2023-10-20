@@ -1,21 +1,11 @@
 import pytest
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT, ConfigurationEnvHelper
-from common.common_infrastructure.cross_cutting.key_vault.key_vault_impl import KeyVaultImpl
+from common.common_infrastructure.cross_cutting.ConfigurationEnvHelper import ConfigurationEnvHelper
 
 
 
 
 @pytest.mark.asyncio
 class TestKeyVaultImpl:
-    async def test_hello_world(self) -> None:
-        secret: str | None = None
-
-        async with KeyVaultImpl(stage=ENVIRONMENT.PRD) as kv:
-            secret = await kv.get_secret("test-secret")
-
-        assert secret is not None
-        assert secret == "hello world"
-
     async def test_get_env(self):
         secret: dict[str, str] = {
             "uid": "PtUid",
@@ -26,7 +16,7 @@ class TestKeyVaultImpl:
             "PackageSizeToSync" : "PackageSizeToSync"
         }
 
-        await ConfigurationEnvHelper(stage=ENVIRONMENT.UAT).get_secrets(secret)
+        await ConfigurationEnvHelper().get_secrets(secret)
 
         secret: dict[str, str] = {
             "uid": "PtUid",
@@ -37,6 +27,6 @@ class TestKeyVaultImpl:
             "PackageSizeToSync" : "PackageSizeToSync"
         }
 
-        await ConfigurationEnvHelper(stage=ENVIRONMENT.UAT).get_secrets(secret)
+        await ConfigurationEnvHelper().get_secrets(secret)
 
         assert secret["PackageSizeToSync"] == "25"

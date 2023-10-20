@@ -11,8 +11,7 @@ from async_lru import alru_cache
 from sqlalchemy import Select, create_engine, delete, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT, ConfigurationEnvHelper
-from common.common_infrastructure.cross_cutting.key_vault.key_vault_impl import KeyVaultImpl
+from common.common_infrastructure.cross_cutting.ConfigurationEnvHelper import ConfigurationEnvHelper
 
 
 from src.infrastructure.data_access.alchemy.sa_session_helper import SASessionMaker
@@ -36,25 +35,15 @@ class AlchemyBase(metaclass=Singleton):
     _session: Session = None
 
     def __init__(
-        self, keyVaults: dict[str, str] = None, passEncrypt: bool = False, stage: ENVIRONMENT = ENVIRONMENT.PRD
-    ):
-        self._stage = stage
+        self, keyVaults: dict[str, str] = None, passEncrypt: bool = False):
         self._passEncrypt = passEncrypt
         self._keyVaultParams = keyVaults
 
     async def _get_credentials(self) -> None:
         if self._secrets is None:
             self._secrets = {}
-            async with KeyVaultImpl(self._stage) as kv:
-                gathered_secrets = await gather(*(kv.get_secret(secret) for secret in self._keyVaultParams.values()))
-
-            for key, value in zip(self._keyVaultParams.keys(), gathered_secrets):
-                if value is None:
-                    raise ValueError(f"None value in credentials for {key}")
-                self._secrets[key] = value
-
-    async def _get_credentials_from_env(self) -> None:
-        self._secrets = ConfigurationEnvHelper(stage=self._stage).get_secrets(self._keyVaultParams)
+            
+        self._secrets = ConfigurationEnvHelper().get_secrets(self._keyVaultParams)
 
     def __get_password(self) -> str:
         password = self._secrets["password"]
@@ -84,8 +73,7 @@ class AlchemyBase(metaclass=Singleton):
 
     async def _get_sqlalchemy_resources(self, alchemyDriverName: str) -> None:
         if self._sessionmaker is None:
-            #await self._get_credentials()
-            await self._get_credentials_from_env()
+            await self._get_credentials()
             engine = await self._setup_engine(alchemyDriverName=alchemyDriverName)
             self._sessionmaker = sessionmaker(bind=engine)
 
@@ -113,16 +101,6 @@ class AlchemyBase(metaclass=Singleton):
         except Exception as e:
             logging.error(f"Error executing query: {query}")
             raise e
-        # try:
-        #     async with self._sessionmaker() as session:
-        #         if isinstance(query, Select):
-        #             result_proxy = await session.execute(query)
-        #             result = result_proxy.scalars().first()
-        #             return result
-        #         else:
-        #             raise ValueError(f"Invalid query type: {type(query)}")
-        # except Exception:
-        #     logging.error(f"Error executing query: {query}")
 
     def bulk_copy(self, objects: List[Any]) -> None:
         try:
@@ -222,55 +200,3 @@ class AlchemyBase(metaclass=Singleton):
         else:
             self._session.expire_all()
             self._session.close()
-
-
-def decode_params(params: str) -> str:
-    params_decoded: Dict[str, Any] = loads(params)
-    return "?".join([f"{key}={value.replace(' ', '+')}" for key, value in params_decoded.items()])
-
-
-# @alru_cache(maxsize=16)
-async def get_connection_str(stage: ENVIRONMENT) -> str:
-    # To local use:
-    # return "mssql+pyodbc://sa:Dookie22@127.0.0.1:1433/MovementsCalculatorDB?driver=ODBC+Driver+17+for+SQL+Server"
-
-    user: str | None = None
-    password: str | None = None
-    host: str | None = None
-    port: str | None = None
-    db: str | None = None
-    params: str | None = None
-
-    async with KeyVaultImpl(stage) as kv:
-        user, password, host, port, db, params = await gather(
-            kv.get_secret("SQL-USER"),
-            kv.get_secret("SQL-PASSWORD"),
-            kv.get_secret("SQL-HOST"),
-            kv.get_secret("SQL-PORT"),
-            kv.get_secret("SQL-DB"),
-            kv.get_secret("SQL-PARAMS"),
-        )
-
-    if None in {user, password, host, port, db}:
-        raise ValueError("None value in credentials")
-
-    password = quote(password)
-    connection_str: str = f"mssql+pyodbc://{user}:{password}@{host}:{port}/{db}"
-    if params:
-        params = decode_params(params=params)
-        connection_str = f"{connection_str}?{params}"
-
-    return connection_str
-
-
-async def get_sa_sessionmaker(connection_str: str) -> sessionmaker[Session]:
-    session: sessionmaker[Session] = SASessionMaker.get_sync_session_maker(connection_string=connection_str)
-    return session
-
-
-@asynccontextmanager
-async def get_sa_session(stage: ENVIRONMENT = ENVIRONMENT.PRD) -> Generator[Session, None, None]:
-    connection_str: str = await get_connection_str(stage=stage)
-    session_inst: sessionmaker[Session] = await get_sa_sessionmaker(connection_str=connection_str)
-    with session_inst.begin() as session:
-        yield session

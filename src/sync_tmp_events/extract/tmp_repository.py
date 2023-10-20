@@ -2,13 +2,11 @@ from datetime import datetime, timedelta
 import logging
 from typing import Generator, List
 
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
 from common.common_infrastructure.dataaccess.db_context.sybase.sql_anywhere_impl import Record
 from common.common_infrastructure.dataaccess.db_profit_tools_access.pt_anywhere_client import PTSQLAnywhere
 
 from src.infrastructure.data_access.db_ware_house_access.sa_models_whdb import SALoaderLog
 from src.infrastructure.data_access.db_ware_house_access.whdb_anywhere_client import WareHouseDbConnector
-
 
 from src.sync_tmp_events.extract.data.modlog import ModLog
 from src.sync_tmp_events.extract.data.shipment import Shipment
@@ -18,9 +16,9 @@ from src.sync_tmp_events.extract.queries.query_tmp_pt import MODLOG_QUERY, SHIPM
 
 class TmpRepository(TmpRepositoryABC):
 
-    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
-        self.wh_repository = WareHouseDbConnector(stage=stage)
-        self.pt_repository = PTSQLAnywhere(stage=stage)
+    def __init__(self) -> None:
+        self.wh_repository = WareHouseDbConnector()
+        self.pt_repository = PTSQLAnywhere()
         self.tmps_to_sync: List[Shipment] = []
         self.mod_datetime: datetime = datetime.utcnow() - timedelta(days=15)
         self.mod_datetime = self.mod_datetime.replace(hour=0, minute=0, second=0, microsecond=0)

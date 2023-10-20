@@ -6,18 +6,18 @@ from azure.core.credentials import AzureKeyCredential
 from azure.eventgrid import EventGridEvent, EventGridPublisherClient
 
 from typing import List
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT, ConfigurationEnvHelper
+from common.common_infrastructure.cross_cutting.ConfigurationEnvHelper import ConfigurationEnvHelper
 from src.sync_tmp_events.extract.data.shipment import Shipment
 
 from src.sync_tmp_events.load.notification.notifier_abc import Notifier
 
 class StreetTurnNotifier(Notifier):
-    def __init__(self, stage : ENVIRONMENT = ENVIRONMENT.PRD) -> None:
+    def __init__(self) -> None:
         self._secret: dict[str, str] = {
             "endpoint": "EventGridChangeStatusKDEndpoint",
             "key": "EventGridChangeStatusKDCredential"
         }
-        ConfigurationEnvHelper(stage=stage).get_secrets(self._secret)
+        ConfigurationEnvHelper().get_secrets(self._secret)
         self.__client_eg = EventGridPublisherClient(
             self._secret["endpoint"]
             , AzureKeyCredential(self._secret["key"])

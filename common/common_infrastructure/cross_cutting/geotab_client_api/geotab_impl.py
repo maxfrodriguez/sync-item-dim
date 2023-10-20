@@ -6,10 +6,8 @@ from typing import Any, Union
 
 from mygeotab import API, AuthenticationException, MyGeotabException, TimeoutException
 from typing_extensions import Final, Self
-
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
+from common.common_infrastructure.cross_cutting import ConfigurationEnvHelper
 from common.common_infrastructure.cross_cutting.geotab_client_api.geotab_abc import GeotabABC
-from common.common_infrastructure.cross_cutting.key_vault.key_vault_impl import KeyVaultImpl
 
 NUM_ALLOWED_FAILED_QUERIES: Final = 5
 ALLOWED_ERROR_MESSAGES: list[str] = ["API calls quota exceeded. Maximum admitted 10 per 1m"]
@@ -26,8 +24,7 @@ class SingletonMeta(type):
 
 
 class GeotabImpl(GeotabABC, metaclass=SingletonMeta):
-    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
-        self.__environment: ENVIRONMENT = stage
+    def __init__(self) -> None:
         self.__client: API = None
         self.devices_by_geotab_trips: dict[str, dict] | None = defaultdict(list)
         self.devices_by_geotab_waypoints: dict[str, dict] | None = defaultdict(list)
@@ -69,13 +66,18 @@ class GeotabImpl(GeotabABC, metaclass=SingletonMeta):
 
     def __get_credentials(self) -> None:
         try:
-            with KeyVaultImpl(stage=self.__environment) as kv:
-                username: str = kv.get_secret("GEOTAB-USER")
-                password: str = kv.get_secret("GEOTAB-PASSWORD")
-                database: str = kv.get_secret("GEOTAB-DATABASE")
-                kv.close_all()
-            self.__client: API = API(username=username, password=password, database=database)
-            del kv
+            self._secret: dict[str, str] = {
+                "username": "GeotabUser",
+                "password": "GeotabPassword",
+                "database": "GeotabDatabase"
+            }
+            ConfigurationEnvHelper().get_secrets(self._secret)
+
+            self.__client: API = API(
+                username=self._secret["username"]
+                , password=self._secret["password"]
+                , database=self._secret["database"])
+            
         except AuthenticationException:
             logging.exception("Unsuccessful authentication with the server.")
             raise

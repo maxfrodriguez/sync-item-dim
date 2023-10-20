@@ -1,18 +1,16 @@
 from datetime import datetime
 import pytest
 
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.sync_tmp_events.extract.data.shipment import Shipment
 from src.sync_tmp_events.load.notification.customer_kpi_notification import TmpChangedNotifier
 from src.sync_tmp_events.load.notification.notifier_manager import NotifierManager
-from src.sync_tmp_events.load.notification.street_turn_notification import StreetTurnNotifier
 
 @pytest.mark.asyncio
 class TestSyncronizerTmpAndEvents:
 
     async def test_notifier_tmp(self):
         # Arrange
-        notifier_manager = NotifierManager(ENVIRONMENT.UAT)
+        notifier_manager = NotifierManager()
         list_shipments = [Shipment(
             ds_id = 100
             , ds_status = "K"

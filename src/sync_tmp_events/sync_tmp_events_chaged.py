@@ -1,24 +1,18 @@
 from datetime import datetime
 import logging
 from typing import List
-from os import getenv
-from common.common_infrastructure.cross_cutting.environment import ConfigurationEnvHelper
+from common.common_infrastructure.cross_cutting.ConfigurationEnvHelper import ConfigurationEnvHelper
 from src.sync_tmp_events.extract.data.shipment import Shipment
 
 
 from src.sync_tmp_events.extract.tmp_repository_abc import TmpRepositoryABC
 from src.sync_tmp_events.load.notification.customer_kpi_notification import TmpChangedNotifier
-from src.sync_tmp_events.load.notification.dim_change_status_notification import DimChangeStatusChange
-from src.sync_tmp_events.load.notification.hubspot_notification import HubSpotNotifier
 from src.sync_tmp_events.load.notification.notifier_manager import NotifierManager
-from src.sync_tmp_events.load.notification.on_time_delivery_notification import OnTimeDeliveryNotifier
-from src.sync_tmp_events.load.notification.street_turn_notification import StreetTurnNotifier
 from src.sync_tmp_events.load.sync_shipment_repository_abc import SyncShipmentRepositoryABC
 
 
 class SyncronizerTmpAndEventsChaged:
-    def __init__(self, stage, tmp_repository: TmpRepositoryABC, sync_information: SyncShipmentRepositoryABC) -> None:
-        self.__stage = stage
+    def __init__(self, tmp_repository: TmpRepositoryABC, sync_information: SyncShipmentRepositoryABC) -> None:
         self.tmp_repository = tmp_repository
         self.sync_information = sync_information
 
@@ -26,30 +20,29 @@ class SyncronizerTmpAndEventsChaged:
 
         # process to syncronize
         async with self.tmp_repository:
-            await self.find_next_tmps_chaged()
-
+            await self.tmp_repository.get_tmp_changed();
+            
             start_process = datetime.now()
             # sincronize in packs of 100
-            pack_size=ConfigurationEnvHelper(stage=self.__stage).get_secret("PackageSizeToSync")
+            pack_size=ConfigurationEnvHelper().get_secret("PackageSizeToSync")
             for shipmets_to_sync in self.tmp_repository.next_shipments(pack_size=pack_size):
-                print(f"Start process at {start_process} with {len(shipmets_to_sync)} shipments")
-                self.tmp_repository.complement_with_equipment_info(shipmets_to_sync)
-                shipmets_to_sync = await self.identify_changes(shipmets_to_sync)
-                print(f"Identify changes {len(shipmets_to_sync)} shipments, time elapsed: {datetime.now() - start_process}")
-                custom_fields = await self.tmp_repository.get_custom_fields(shipmets_to_sync)
-                shipments_to_notify = await self.load(shipmets_to_sync, custom_fields)
-                print(f"Load {len(shipments_to_notify)} shipments, time elapsed: {datetime.now() - start_process}")
-                await self.notify(shipments_to_notify)
-                print(f"Notify {len(shipments_to_notify)} shipments, time elapsed: {datetime.now() - start_process}")
-                start_process = datetime.now()
-        
+                try:
 
-    async def find_next_tmps_chaged(self):
-        await self.tmp_repository.get_tmp_changed();
-        return self
-    
-    async def identify_changes(self, list_shipments: List[Shipment]):
-        return await self.sync_information.find_shipments_to_sync(list_shipments)
+                    logging.info(f"Syncronize {len(shipmets_to_sync)} shipments, starting at {start_process}")
+
+                    self.tmp_repository.complement_with_equipment_info(shipmets_to_sync)
+                    shipmets_to_sync = await self.sync_information.find_shipments_to_sync(shipmets_to_sync)
+                    custom_fields = await self.tmp_repository.get_custom_fields(shipmets_to_sync)
+                    shipments_to_notify = await self.load(shipmets_to_sync, custom_fields)
+                    await self.notify(shipments_to_notify)
+
+                    timeelapsed = datetime.now() - start_process
+                    logging.info(f"Syncronize {len(shipmets_to_sync)} shipments, finished at {datetime.now()} in {timeelapsed}")
+
+                except Exception as e:
+                    ids = ", ".join(f"'{shipment.ds_id}'" for shipment in shipmets_to_sync)
+                    logging.error(f"Error in syncronize shipments: {ids} with error: {e}")
+                
     
     async def load(self, list_shipments: List[Shipment], custom_fields: List[dict]):
         shipment_to_sync = await self.sync_information.load_shipments(list_shipments, custom_fields)
@@ -67,7 +60,7 @@ class SyncronizerTmpAndEventsChaged:
     async def notify(self, list_shipments: List[Shipment]):
         try:
             #add any new notification here
-            notifier_manager = NotifierManager(self.__stage)
+            notifier_manager = NotifierManager()
 
             notifier_manager.register_notifier(TmpChangedNotifier)
             # notifier_manager.register_notifier(StreetTurnNotifier)

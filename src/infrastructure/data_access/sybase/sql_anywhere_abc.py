@@ -1,11 +1,8 @@
 from abc import abstractmethod
 
-from common.src.infrastructure.cross_cutting import ENVIRONMENT
-
-
 class SQLAnywhereABC():
     @abstractmethod
-    def __init__(self, stage: ENVIRONMENT) -> None:
+    def __init__(self) -> None:
         raise NotImplementedError
 
     @abstractmethod

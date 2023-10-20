@@ -8,15 +8,13 @@ from azure.cosmos.database import DatabaseProxy
 from azure.cosmos.partition_key import PartitionKey
 from typing_extensions import Self
 
-from common.common_infrastructure.cross_cutting import KeyVaultImpl
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
+from common.common_infrastructure.cross_cutting import ConfigurationEnvHelper, KeyVaultImpl
 
 from .cosmos_abc import CosmosABC
 
 
 class CosmosImpl(CosmosABC):
-    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
-        self.__environment: ENVIRONMENT = stage
+    def __init__(self) -> None:
         self.__database: DatabaseProxy = None
 
     def __enter__(self) -> Self:
@@ -33,17 +31,20 @@ class CosmosImpl(CosmosABC):
 
     def __connect_db_cosmos(self) -> CosmosClient:
         try:
-            cosmos_account_uri: str = ""
-            cosmos_account_key: str = ""
-            cosmos_database_name: str = ""
+            self._secret: dict[str, str] = {
+                "uriCosmos": "CosmosEndpoint",
+                "keyCosmos": "CosmosKey",
+                "database": "CosmosDB"
+            }
+            ConfigurationEnvHelper().get_secrets(self._secret)
 
-            with KeyVaultImpl(self.__environment) as kv:
-                cosmos_account_uri = kv.get_secret("COSMOS-ENDPOINT")
-                cosmos_account_key = kv.get_secret("COSMOS-KEY")
-                cosmos_database_name = kv.get_secret("COSMOS-DB")
-
-            client: CosmosClient = CosmosClient(url=cosmos_account_uri, credential=cosmos_account_key)
-            self.__database = client.create_database_if_not_exists(id=cosmos_database_name)
+            client: CosmosClient = CosmosClient(
+                url=self._secret["uriCosmos"]
+                , credential=self._secret["keyCosmos"]
+            )
+            
+            self.__database = client.create_database_if_not_exists(
+                id=self._secret["database"])
 
         except Exception as e:
             logging.exception(f"Error while creating CosmosClient: {e}")

@@ -1,10 +1,8 @@
-
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
 from src.infrastructure.data_access.alchemy.sa_session_impl import AlchemyBase
 
 
 class WareHouseDbConnector(AlchemyBase):
-    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD):
+    def __init__(self):
         secrets = {
             "user": "SqlUser",
             "password": "SqlPwd",
@@ -13,7 +11,7 @@ class WareHouseDbConnector(AlchemyBase):
             "db": "SqlDb",
             "params": "SqlParams",
         }
-        super().__init__(keyVaults=secrets, passEncrypt=True, stage=stage)
+        super().__init__(keyVaults=secrets, passEncrypt=True)
 
     async def connect(self) -> None:
         await self._get_sqlalchemy_resources(alchemyDriverName="mssql+pyodbc")

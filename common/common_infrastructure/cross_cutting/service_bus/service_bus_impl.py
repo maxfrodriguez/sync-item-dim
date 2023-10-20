@@ -4,16 +4,14 @@ from os import getenv
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
 from orjson import dumps
 from typing_extensions import Self
+from common.common_infrastructure.cross_cutting import ConfigurationEnvHelper
 
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
 from common.common_infrastructure.cross_cutting.geotab_client_api.geotab_impl import SingletonMeta
-from common.common_infrastructure.cross_cutting.key_vault.key_vault_impl import KeyVaultImpl
 from common.common_infrastructure.cross_cutting.service_bus.service_bus_abc import ServiceBusABC
 
 
 class ServiceBusImpl(ServiceBusABC, metaclass=SingletonMeta):
-    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD):
-        self.__environment: ENVIRONMENT = stage
+    def __init__(self):
         self.client: ServiceBusClient = None
 
     def __enter__(self) -> Self:
@@ -30,8 +28,7 @@ class ServiceBusImpl(ServiceBusABC, metaclass=SingletonMeta):
 
     def __connect_service_bus(self):
         try:
-            with KeyVaultImpl(self.__environment) as kv:
-                service_bus_con_str = kv.get_secret("SERVICE-BUS-CONN-URL")
+            service_bus_con_str = ConfigurationEnvHelper().get_secret("ServiceBusConnURL")
 
             self.client = ServiceBusClient.from_connection_string(conn_str=service_bus_con_str)
 

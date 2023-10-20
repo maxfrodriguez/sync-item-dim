@@ -2,7 +2,6 @@ from dataclasses import asdict
 from datetime import datetime
 import logging
 from typing import Any, Dict, List
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
 from common.common_infrastructure.cross_cutting.hasher import deep_hash
 
 
@@ -18,9 +17,8 @@ from src.sync_tmp_events.load.queries.queries import WAREHOUSE_SHIPMENTS
 
 
 class SyncShipmentRepository(SyncShipmentRepositoryABC):
-    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
-        #self.__stage = stage
-        self.wh_repository = WareHouseDbConnector(stage=stage)
+    def __init__(self) -> None:
+        self.wh_repository = WareHouseDbConnector()
 
     async def find_shipments_to_sync(self, list_shipmets: List[Shipment]) -> List[Shipment]:
         shipment_to_sync : List[Shipment] = []

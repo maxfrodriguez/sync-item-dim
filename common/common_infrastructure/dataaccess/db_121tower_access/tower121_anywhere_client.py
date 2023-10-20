@@ -1,19 +1,18 @@
 import logging
 
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
 from common.common_infrastructure.dataaccess.db_context.alchemy.sa_session_impl import AlchemyBase
 
 
 class Tower121DdConnector(AlchemyBase):
-    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD):
+    def __init__(self):
         secrets = {
-            "user": "POSTGRES-USER",
-            "password": "POSTGRES-PASSWORD",
-            "host": "POSTGRES-HOST",
-            "port": "POSTGRES-PORT",
-            "db": "POSTGRES-DB",
+            "user": "User121Db",
+            "password": "Pwd121Db",
+            "host": "Host121Db",
+            "port": "Port121Db",
+            "db": "Bd121Db",
         }
-        super().__init__(keyVaults=secrets, stage=stage)
+        super().__init__(keyVaults=secrets)
 
     def connect(self) -> None:
         try:

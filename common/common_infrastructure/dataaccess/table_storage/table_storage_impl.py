@@ -4,14 +4,12 @@ from typing import Any
 from azure.core.exceptions import ResourceNotFoundError
 from azure.data.tables import TableClient, TableEntity, TableServiceClient, UpdateMode
 from typing_extensions import Self
+from common.common_infrastructure.cross_cutting import ConfigurationEnvHelper
 
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
-from common.common_infrastructure.cross_cutting.key_vault.key_vault_impl import KeyVaultImpl
 
 
 class TableStorageImpl:
-    def __init__(self, stage: ENVIRONMENT = ENVIRONMENT.PRD) -> None:
-        self.__environment: ENVIRONMENT = stage
+    def __init__(self) -> None:
         self.__conn: TableServiceClient = None
         self.__tbl: TableClient = None
 
@@ -27,11 +25,15 @@ class TableStorageImpl:
         pass
 
     def connect(self) -> Self:
-        with KeyVaultImpl(self.__environment) as kv:
-            conn_str: str = kv.get_secret("CONN-STRING")
-            table_name: str = kv.get_secret("BILLING-REPORT-TABLE")
-        self.__conn = TableServiceClient.from_connection_string(conn_str)
-        self.__tbl = self.__conn.create_table_if_not_exists(table_name)
+
+        _secrets: dict[str, str] = {
+            "ConnSring": "tblConnStr",
+            "BillingRreportTable": "tblReportBilling"
+        }
+        ConfigurationEnvHelper().get_secrets(self._secret)
+
+        self.__conn = TableServiceClient.from_connection_string(_secrets["ConnSring"])
+        self.__tbl = self.__conn.create_table_if_not_exists(_secrets["BillingRreportTable"])
 
     def close_all(self) -> None:
         self.__conn.close()

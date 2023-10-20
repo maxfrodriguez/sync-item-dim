@@ -2,12 +2,11 @@ from abc import abstractmethod
 
 from typing_extensions import Self
 
-from common.common_infrastructure.cross_cutting.environment import ENVIRONMENT
 
 
 class ServiceBusABC:
     @abstractmethod
-    def __init__(self, stage: ENVIRONMENT) -> None:
+    def __init__(self) -> None:
         raise NotImplementedError
 
     @abstractmethod

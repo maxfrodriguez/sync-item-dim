@@ -5,12 +5,11 @@ import logging
 
 class NotifierManager:
     
-    def __init__(self, stage):
-        self.stage = stage
+    def __init__(self):
         self.notifiers = []
         
     def register_notifier(self, notifier):
-        self.notifiers.append(notifier(self.stage))
+        self.notifiers.append(notifier())
         
     async def notify_all(self, list_shipments):
         for notifier in self.notifiers:

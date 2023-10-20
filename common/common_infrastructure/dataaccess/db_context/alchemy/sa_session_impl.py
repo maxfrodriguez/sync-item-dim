@@ -8,7 +8,7 @@ from sqlalchemy import Insert, Select, create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from common.common_infrastructure.cross_cutting import ENVIRONMENT, KeyVaultImpl
+from common.common_infrastructure.cross_cutting import ENVIRONMENT, ConfigurationEnvHelper, KeyVaultImpl
 
 
 class Singleton(type):
@@ -29,22 +29,15 @@ class AlchemyBase(metaclass=Singleton):
     _session: Session = None
 
     def __init__(
-        self, keyVaults: dict[str, str] = None, passEncrypt: bool = False, stage: ENVIRONMENT = ENVIRONMENT.PRD
-    ):
-        self._stage = stage
+        self, keyVaults: dict[str, str] = None, passEncrypt: bool = False):
         self._passEncrypt = passEncrypt
         self._keyVaultParams = keyVaults
 
     def _get_credentials(self) -> None:
         if self._secrets is None:
             self._secrets = {}
-            with KeyVaultImpl(self._stage) as kv:
-                gathered_secrets = (kv.get_secret(secret) for secret in self._keyVaultParams.values())
 
-            for key, value in zip(self._keyVaultParams.keys(), gathered_secrets):
-                if value is None:
-                    raise ValueError(f"None value in credentials for {key}")
-                self._secrets[key] = value
+            self._secrets = ConfigurationEnvHelper().get_secrets(self._keyVaultParams)
 
     def __get_password(self) -> str:
         password = self._secrets["password"]

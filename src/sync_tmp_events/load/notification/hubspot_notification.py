@@ -3,6 +3,7 @@ from os import getenv
 from orjson import dumps
 from typing import List
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
+from common.common_infrastructure.cross_cutting import ConfigurationEnvHelper
 from src.sync_tmp_events.extract.data.shipment import Shipment
 from src.sync_tmp_events.load.data.customer import Customer
 from src.sync_tmp_events.load.notification.notifier_abc import Notifier
@@ -10,10 +11,13 @@ from src.sync_tmp_events.load.notification.notifier_abc import Notifier
 
 class HubSpotNotifier(Notifier):
 
-    def __init__(self, stage) -> None:
-        _sb_con_string: str= getenv(f"SERVICE_BUS_CONN_STRING_{stage.name}")
-        self._queue_name: str= getenv(f"SB_QUEUE_WH_HUBSPOT_{stage.name}")
-        self._sb_client = ServiceBusClient.from_connection_string(conn_str=_sb_con_string)
+    def __init__(self) -> None:
+        self._secret: dict[str, str] = {
+            "conn": "ServiceBusConn",
+            "queue": "SbQueueWhHubspot"
+        }
+        ConfigurationEnvHelper().get_secrets(self._secret)
+        self._sb_client = ServiceBusClient.from_connection_string(conn_str=self._secret["conn"])
 
     async def send_information(self, shipments_customers: List[Shipment]):
         customers: List[Customer] = []
@@ -31,7 +35,7 @@ class HubSpotNotifier(Notifier):
             
             if customer_hash:
                 customer_list = list(customer_hash)
-                sender = self._sb_client.get_queue_sender(queue_name=self._queue_name)
+                sender = self._sb_client.get_queue_sender(queue_name=self._secret["queue"])
                 message = ServiceBusMessage(dumps(customer_list))
                 sender.send_messages(message)
                         

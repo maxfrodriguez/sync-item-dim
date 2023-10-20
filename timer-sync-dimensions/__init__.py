@@ -9,18 +9,16 @@ from src.sync_tmp_events.load.sync_shipment_repository import SyncShipmentReposi
 from src.sync_tmp_events.sync_tmp_events_chaged import SyncronizerTmpAndEventsChaged
 
 
-
-
 async def main(mytimer: func.TimerRequest) -> None:
     utc_timestamp = datetime.datetime.utcnow().replace(
         tzinfo=datetime.timezone.utc).isoformat()
 
-    logging.info('Timer trigger function ran at %s', utc_timestamp)
 
     syncronizer = SyncronizerTmpAndEventsChaged(
         tmp_repository=TmpRepository()
         , sync_information=SyncShipmentRepository()
         )
 
+    logging.info('Timer trigger function ran at %s', utc_timestamp)
     # Act
     await syncronizer.syncronize()

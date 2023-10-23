@@ -9,9 +9,9 @@ class WareHouseDbConnector(AlchemyBase):
             "host": "SqlHost",
             "port": "SqlPort",
             "db": "SqlDb",
-            "params": "SqlParams",
+            #"params": "SqlParams", becareful with this one because gives error in azure functions when using ODBC Driver 17 for SQL Server
         }
         super().__init__(keyVaults=secrets, passEncrypt=True)
 
     async def connect(self) -> None:
-        await self._get_sqlalchemy_resources(alchemyDriverName="mssql+pyodbc")
+        await self._get_sqlalchemy_resources(alchemyDriverName="mssql+pymssql")

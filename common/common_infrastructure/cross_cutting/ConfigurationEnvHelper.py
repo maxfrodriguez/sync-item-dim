@@ -12,7 +12,7 @@ class ConfigurationEnvHelper:
 
     def __init__(self) -> None:
         try:
-            self._stage: str = self.get_secret("KEY_VAULT_NAME")
+            self._stage: str = getenv("KEY_VAULT_NAME")
             self._secret_client: SecretClient = None
             if self._stage:
                 self._secret_client: SecretClient = SecretClient(vault_url=f"https://{self._stage}.vault.azure.net", credential=DefaultAzureCredential())
@@ -43,8 +43,8 @@ class ConfigurationEnvHelper:
                             raise ValueError(f"I don't found key vault name reference configuration")
                         bank_secret: KeyVaultSecret = self._secret_client.get_secret(value)
                         env_value = bank_secret.value
-                    except ResourceNotFoundError as e:
-                        logging.exception(f"Secret not found. {str(e.reason)}")
+                    except Exception as e:
+                        logging.exception(f"Secret: {value} not found. {str(e)}")
 
             else:
                 env_value = self._keyVaultParamsCache[value]
@@ -68,7 +68,7 @@ class ConfigurationEnvHelper:
                     bank_secret: KeyVaultSecret = self._secret_client.get_secret(secret)
                     env_value = bank_secret.value
                 except ResourceNotFoundError as e:
-                    logging.exception(f"Secret not found. {str(e.reason)}")
+                    logging.exception(f"Secret: {secret} not found. {str(e)}")
 
             if not env_value:
                 raise ValueError(f"None value in credentials for {secret}")

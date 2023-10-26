@@ -45,7 +45,7 @@ class SALoaderLog(Base, SAModelBaseWareHouse):
         try:
             #return await db_session.query(cls).order_by(desc(cls.mod_highest_version)).first()
             statement = select(cls).order_by(desc(cls.id))#.limit(1)
-            result = await orm_client.execute_statement(query=statement)
+            result = await orm_client.execute_statement(statement=statement)
             instance: Self | None = result
             return instance
         except Exception as e:
@@ -133,7 +133,8 @@ class SAShipment(Base, SAModelBaseWareHouse):
     def bulk_save(cls, orm_client: AlchemyBase) -> None:
         ...
 
-    events = relationship("SAEvent", back_populates="shipment")
+    #events = relationship("SAEvent", back_populates="shipment")
+    #fact_events = relationship("SAFactEvent", back_populates="shipment")
 
 class SATemplate(Base):
     __tablename__ = "templates"
@@ -220,8 +221,7 @@ class SAEvent(Base, SAModelBaseWareHouse):
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
 
-    shipment_id = Column(BigInteger, ForeignKey("shipments.id", ondelete="CASCADE"), nullable=True)
-    shipment = relationship("SAShipment", uselist=False, back_populates="events")
+    #shipment = relationship("SAShipment", uselist=False, back_populates="events")
     # stops = relationship("SAStops", uselist=False, back_populates="event")
 
 
@@ -439,6 +439,7 @@ class SAFactShipment(Base):
     del_appt_time = Column(String, nullable=True)
     sk_last_shipment_id = Column(Integer, nullable=True)
 
+    fact_events = relationship("SAFactEvent", cascade="all, delete-orphan", back_populates="fact_shipments")
 
 # Main events
 class SAFactEvent(Base):
@@ -462,7 +463,9 @@ class SAFactEvent(Base):
     driver_name = Column(String, nullable=True)
     hash = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
-    shipment_id = Column(Integer, ForeignKey("fact_shipments.ds_id", ondelete="CASCADE"), nullable=True)
+    #shipment_id = Column(Integer, ForeignKey("fact_shipments.ds_id", ondelete="CASCADE"), nullable=True)
+    ds_id = Column(Integer, ForeignKey("fact_shipments.ds_id", ondelete="CASCADE"), nullable=True)
+    fact_shipments = relationship("SAFactShipment", uselist=False, back_populates="fact_events")
 
 
 # Main Items

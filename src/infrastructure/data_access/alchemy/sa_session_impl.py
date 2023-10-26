@@ -87,19 +87,21 @@ class AlchemyBase(metaclass=Singleton):
                 result = result_proxy.fetchall()
                 columns = result_proxy.keys()
                 return [dict(zip(columns, row)) for row in result]
-        except Exception:
-            logging.error(f"Error executing query: {query}")
+        except Exception as e:
+            logging.error(f"Error executing query: {query}, with error: {e}")
 
-    async def execute_statement(self, query: Select) -> Any:
+    async def execute_statement(self, statement: Select) -> Any:
         try:
-            if isinstance(query, Select):
-                result_proxy = self._session.execute(query)
+            if isinstance(statement, Select):
+                result_proxy = self._session.execute(statement)
                 result = result_proxy.scalars().first()
                 return result
+            elif isinstance(statement, str):
+                result_proxy = self._session.execute(text(statement))
             else:
-                raise ValueError(f"Invalid query type: {type(query)}")
+                result_proxy = self._session.execute(statement)
         except Exception as e:
-            logging.error(f"Error executing query: {query}")
+            logging.error(f"Error executing query: {statement}")
             raise e
 
     def bulk_copy(self, objects: List[Any]) -> None:

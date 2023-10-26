@@ -1,7 +1,7 @@
 from dataclasses import dataclass, asdict
 
 @dataclass
-class Customer:
+class ShipmentsChanged:
     tmp: int
     template_id: int
     customer_id: int
